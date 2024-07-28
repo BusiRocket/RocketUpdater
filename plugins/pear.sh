@@ -12,6 +12,7 @@ update_pear() {
     if check_pear; then
         echo 'PEAR & PECL Update'
         pear clear-cache
+        pear upgrade PEAR
         pear upgrade
         pecl upgrade
     fi

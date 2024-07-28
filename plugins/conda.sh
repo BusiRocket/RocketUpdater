@@ -56,5 +56,3 @@ update_conda() {
         done < <(conda env list | tail -n +4 | awk '{print $1}')
     fi
 }
-
-update_conda
