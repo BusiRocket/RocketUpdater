@@ -38,7 +38,7 @@
 
 ## Usage
 
-Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments on your macOS.
+Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments.
 
 ## Contributing
 
