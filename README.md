@@ -18,7 +18,7 @@
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/RocketUpdater.git
+   git clone https://github.com/BusiRocket/RocketUpdater.git
    ```
 
 2. Navigate to the project directory:
