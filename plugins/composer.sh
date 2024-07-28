@@ -13,6 +13,7 @@ update_composer() {
         echo 'Composer: Updating...'
         composer clearcache
         composer self-update
+
         echo 'Composer: Updating Global Packages'
         composer global update
     fi

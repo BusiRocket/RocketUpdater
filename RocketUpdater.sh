@@ -22,7 +22,7 @@ run_plugin() {
         if [ "$DISABLE" != "true" ]; then
             plugin_name=$(basename "$plugin" .sh)
             echo_cyan "Updating $plugin_name..."
-            update_"$plugin_name"
+            try update_"$plugin_name"
         else
             echo_yellow "Plugin $plugin is disabled."
         fi
@@ -42,17 +42,17 @@ if [ -n "$1" ]; then
     exit 0
 fi
 
-# Check if the plugins directory exists and is not empty
-if [ -d "$SCRIPT_DIR/plugins" ] && [ "$(ls -A "$SCRIPT_DIR"/plugins/*.sh 2>/dev/null)" ]; then
-    echo_blue 'Including Plugins...'
-    for plugin in "$SCRIPT_DIR"/plugins/*.sh; do
-        plugin_name=$(basename "$plugin" .sh)
-        echo_cyan "- $plugin_name..."
-        source "$plugin"
-    done
-else
-    echo_red 'No plugins found. Please ensure the plugins directory exists and contains plugins.'
-fi
+# Function to load and update all plugins
+load_and_update_plugins() {
+    if [ -d "$SCRIPT_DIR/plugins" ] && [ "$(ls -A "$SCRIPT_DIR"/plugins/*.sh 2>/dev/null)" ]; then
+        echo_blue 'Loading Plugins...'
+        for plugin in "$SCRIPT_DIR"/plugins/*.sh; do
+            run_plugin "$(basename "$plugin" .sh)"
+        done
+    else
+        echo_red 'No plugins found. Please ensure the plugins directory exists and contains plugins.'
+    fi
+}
 
 # Check if we are inside a conda environment
 if [ -n "$CONDA_DEFAULT_ENV" ]; then
@@ -61,17 +61,4 @@ if [ -n "$CONDA_DEFAULT_ENV" ]; then
 fi
 
 echo_blue 'Updating Plugins...'
-if [ -d "$SCRIPT_DIR/plugins" ] && [ "$(ls -A "$SCRIPT_DIR"/plugins/*.sh 2>/dev/null)" ]; then
-    for plugin in "$SCRIPT_DIR"/plugins/*.sh; do
-        source "$plugin"
-        plugin_name=$(basename "$plugin" .sh)
-        if [ "$DISABLE" != "true" ]; then
-            echo_cyan "Updating $plugin_name..."
-            try update_"$plugin_name"
-        else
-            echo_yellow "Plugin $plugin_name is disabled."
-        fi
-    done
-else
-    echo_red 'No plugins found to update.'
-fi
+load_and_update_plugins
