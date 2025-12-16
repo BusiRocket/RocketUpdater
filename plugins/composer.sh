@@ -20,14 +20,14 @@ update_composer() {
     composer clearcache 2>/dev/null || true
 
     echo_info "Composer: Updating Composer itself..."
-    if ! composer self-update; then
+    if ! composer self-update 2>&1; then
         echo_warning "Composer self-update failed (may require sudo)"
     fi
 
     # Check if global composer.json exists before updating global packages
     if [ -f "$COMPOSER_HOME/composer.json" ]; then
         echo_info "Composer: Updating global packages..."
-        composer global update
+        composer global update 2>&1 || echo_warning "Global packages update failed"
     else
         echo_skip "No global composer.json found at $COMPOSER_HOME. Skipping global update."
     fi
