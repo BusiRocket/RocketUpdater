@@ -18,7 +18,7 @@ update_docker() {
     echo_info "Docker: Removing exited containers..."
     local exited_containers
     exited_containers=$(docker ps -a -f status=exited -q 2>/dev/null)
-    
+
     if [ -n "$exited_containers" ]; then
         echo "$exited_containers" | xargs docker rm 2>/dev/null || true
         echo_success "Removed exited containers"
@@ -30,7 +30,7 @@ update_docker() {
     echo_info "Docker: Removing dead containers..."
     local dead_containers
     dead_containers=$(docker ps -a -f status=dead -q 2>/dev/null)
-    
+
     if [ -n "$dead_containers" ]; then
         echo "$dead_containers" | xargs docker rm -f 2>/dev/null || true
         echo_success "Removed dead containers"
