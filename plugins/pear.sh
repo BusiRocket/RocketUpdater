@@ -19,11 +19,25 @@ run_pear_command() {
     pear "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
 }
 
+run_pear_command_sudo() {
+    local cmd=$1
+    shift
+    # Run pear with sudo and filter out PHP warnings
+    sudo pear "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
+}
+
 run_pecl_command() {
     local cmd=$1
     shift
     # Run pecl and filter out PHP warnings (common with newer PHP versions)
     pecl "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
+}
+
+run_pecl_command_sudo() {
+    local cmd=$1
+    shift
+    # Run pecl with sudo and filter out PHP warnings
+    sudo pecl "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
 }
 
 update_pear() {
@@ -43,28 +57,48 @@ update_pear() {
         return 0
     fi
 
-    # PEAR updates
+    # Step 1: Clear caches
     if [ "$has_pear" = true ]; then
         echo_info "PEAR: Clearing cache..."
         run_pear_command "clear-cache"
-
-        echo_info "PEAR: Updating channels..."
-        run_pear_command "update-channels"
-
-        echo_info "PEAR: Upgrading PEAR itself..."
-        run_pear_command "upgrade" "--force" "PEAR"
-
-        echo_info "PEAR: Upgrading all packages..."
-        run_pear_command "upgrade-all" "--force"
     fi
 
-    # PECL updates
+    # Step 2: Update ALL channels first (fixes "unsupported protocol" error)
+    # See: https://ma.ttias.be/php-pear-php-net-using-unsupported-protocol-never-happen/
+    if [ "$has_pear" = true ]; then
+        echo_info "PEAR: Updating channels..."
+        run_pear_command "update-channels"
+    fi
+
     if [ "$has_pecl" = true ]; then
         echo_info "PECL: Updating channels..."
         run_pecl_command "update-channels"
+    fi
 
-        echo_info "PECL: Upgrading all extensions..."
-        run_pecl_command "upgrade" "--force"
+    # Step 3: Upgrade PEAR packages first (required before PECL upgrades)
+    if [ "$has_pear" = true ]; then
+        echo_info "PEAR: Upgrading PEAR itself..."
+        run_pear_command_sudo "upgrade" "--force" "PEAR"
+
+        echo_info "PEAR: Upgrading all packages..."
+        run_pear_command_sudo "upgrade" "--force"
+    fi
+
+    # Step 4: Upgrade PECL extensions (after PEAR is fully updated)
+    if [ "$has_pecl" = true ]; then
+        echo_info "PECL: Upgrading installed extensions..."
+        # Get list of installed PECL packages and upgrade each with --force
+        local pecl_packages
+        pecl_packages=$(pecl list 2>/dev/null | tail -n +4 | awk '{print $1}' | grep -v "^$")
+
+        if [ -n "$pecl_packages" ]; then
+            for pkg in $pecl_packages; do
+                echo "  → Upgrading $pkg..."
+                run_pecl_command_sudo "upgrade" "--force" "$pkg"
+            done
+        else
+            echo_skip "No PECL extensions installed"
+        fi
     fi
 
     echo_success "PEAR/PECL update completed"
