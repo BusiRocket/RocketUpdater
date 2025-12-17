@@ -14,9 +14,9 @@ update_npx() {
         return 0
     fi
 
-    # Clear npx cache
+    # Clear npx cache (use -y to auto-confirm package installation)
     echo_info "NPX: Clearing cache..."
-    npx clear-npx-cache 2>/dev/null || true
+    npx -y clear-npx-cache 2>/dev/null || true
 
     # Note: update-browserslist-db requires a project with package.json
     # We'll skip this as it's project-specific, not a global update

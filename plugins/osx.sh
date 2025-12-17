@@ -48,8 +48,13 @@ update_osx() {
     fi
 
     # Purge memory (helps with sluggish performance)
+    # Use sudo -n to avoid password prompt in automated scripts
     echo_info "macOS: Purging disk cache..."
-    sudo purge 2>/dev/null || echo_skip "Could not purge disk cache (requires sudo)"
+    if sudo -n true 2>/dev/null; then
+        sudo purge 2>/dev/null || echo_skip "Could not purge disk cache"
+    else
+        echo_skip "Skipping disk cache purge (requires sudo credentials)"
+    fi
 
     # Rebuild Spotlight index (optional, commented out as it takes time)
     # echo_info "macOS: Rebuilding Spotlight index..."

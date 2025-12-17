@@ -25,9 +25,9 @@ update_yarn() {
 
     # Yarn 1.x (Classic) vs Yarn 2+ (Berry) have different update mechanisms
     if [ "$yarn_major_version" = "1" ]; then
-        # Yarn Classic - update via npm
+        # Yarn Classic - update via npm (use --force to handle existing symlinks)
         echo_info "Yarn Classic: Updating via npm..."
-        npm install -g yarn@latest 2>&1 || echo_warning "Yarn update via npm failed"
+        npm install -g yarn@latest --force 2>&1 || echo_warning "Yarn update via npm failed"
     else
         # Yarn Berry (2+) - use set version
         echo_info "Yarn Berry: Updating to latest stable..."

@@ -20,8 +20,8 @@ update_omzsh() {
     
     # Check if upgrade script exists
     if [ -f "$zsh_dir/tools/upgrade.sh" ]; then
-        # Run the upgrade script
-        env ZSH="$zsh_dir" sh "$zsh_dir/tools/upgrade.sh" 2>&1 || {
+        # Run the upgrade script with zsh (Oh My Zsh requires zsh, not sh)
+        env ZSH="$zsh_dir" zsh "$zsh_dir/tools/upgrade.sh" 2>&1 || {
             echo_warning "Oh My Zsh upgrade script failed, trying git pull..."
             (cd "$zsh_dir" && git pull origin master 2>&1) || true
         }
