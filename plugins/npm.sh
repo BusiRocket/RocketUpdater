@@ -25,24 +25,27 @@ update_npm() {
     # Check for outdated global packages using ncu
     if check_ncu; then
         echo_info "NPM: Checking for outdated global packages..."
-        
+
         # Get list of outdated packages and their new versions
         local outdated_output
         outdated_output=$(ncu -g 2>&1)
-        
+
         if echo "$outdated_output" | grep -q "→"; then
             echo "$outdated_output"
-            
+
             # Extract package names with versions and update them
             echo_info "NPM: Updating global packages..."
-            # Parse ncu output and install each package
+            # Parse ncu output format: "package  current  →  new"
+            # Use awk to properly extract package name (field 1) and new version (field after →)
             echo "$outdated_output" | grep "→" | while read -r line; do
-                # Extract package name and new version
-                local pkg_info
-                pkg_info=$(echo "$line" | sed -E 's/.*(@[^@]+).*→.*([0-9]+\.[0-9]+\.[0-9]+).*/\1@\2/' | sed 's/^[[:space:]]*//')
-                
-                if [ -n "$pkg_info" ]; then
-                    npm install -g "$pkg_info" 2>&1 || true
+                # Extract package name (first non-empty field) and new version (after →)
+                local pkg_name new_version
+                pkg_name=$(echo "$line" | awk '{print $1}')
+                new_version=$(echo "$line" | awk -F'→' '{print $2}' | awk '{print $1}')
+
+                if [ -n "$pkg_name" ] && [ -n "$new_version" ]; then
+                    echo "  → Updating $pkg_name to $new_version..."
+                    npm install -g "${pkg_name}@${new_version}" 2>&1 || true
                 fi
             done
         else
@@ -50,7 +53,7 @@ update_npm() {
         fi
     else
         echo_warning "npm-check-updates (ncu) not installed. Install with: npm install -g npm-check-updates"
-        
+
         # Fallback: list outdated packages
         echo_info "NPM: Checking for outdated global packages..."
         npm outdated -g 2>&1 || true
