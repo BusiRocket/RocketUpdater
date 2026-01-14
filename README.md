@@ -8,6 +8,7 @@
 - **Homebrew Integration**: Automatically update, upgrade, and clean Homebrew packages.
 - **NPM and Yarn Support**: Update global NPM packages and the Yarn version effortlessly.
 - **Composer Maintenance**: Clear cache, self-update Composer, and update global Composer packages.
+- **Rust Toolchain Updates**: Update Rust toolchains via rustup (and optionally cargo-installed binaries).
 - **Conda Environment Management**: Deactivate current Conda environments, update Conda itself, and ensure all environments have the latest Python version and packages.
 - **Docker Cleanup**: Remove exited containers and unused images to free up space.
 - **macOS Updates**: Keep your macOS up-to-date with the latest software updates.
