@@ -12,7 +12,7 @@ update_homebrew() {
     if check_homebrew; then
         echo_yellow 'Homebrew: Updating...'
         brew update
-        brew upgrade
+        brew upgrade --greedy
 
         echo_yellow 'Homebrew: Cleaning...'
         brew cleanup
