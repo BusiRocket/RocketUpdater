@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Conda"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="1.2.1"
 DISABLE=${DISABLE:-false}
 
 check_conda() {
@@ -16,7 +16,7 @@ get_latest_stable_python() {
     
     if [ -z "$version" ]; then
         # Fallback to a known stable version
-        echo "3.13"
+        echo "3.14"
     else
         # Extract major.minor version
         echo "$version" | cut -d. -f1,2
@@ -29,16 +29,27 @@ update_conda_environment() {
     
     echo_info "Processing environment: $env_name"
     
-    # Update all packages in the environment
-    echo "  → Updating packages..."
-    if ! conda update -n "$env_name" --all -y 2>&1; then
-        echo_warning "Some packages in $env_name could not be updated"
+    # Update all packages (skip --all for base to avoid removing conda deps like ruamel.yaml)
+    if [ "$is_base" != "true" ]; then
+        echo "  → Updating packages..."
+        if ! conda update -n "$env_name" --all -y 2>&1; then
+            echo_warning "Some packages in $env_name could not be updated"
+        fi
     fi
     
-    # Update Python (don't force specific version, let conda resolve)
-    echo "  → Updating Python..."
-    if ! conda update -n "$env_name" python -y 2>&1; then
-        echo_skip "Python update skipped for $env_name (dependency conflicts)"
+    # Update Python: base stays on highest version conda supports (e.g. 3.13); other envs → latest (e.g. 3.14)
+    if [ "$is_base" = "true" ]; then
+        echo "  → Updating Python (base: highest version supported by conda)..."
+        if ! conda update -n "$env_name" python -y 2>&1; then
+            echo_skip "Python update skipped for base (dependency constraints)"
+        fi
+    else
+        local latest_python
+        latest_python=$(get_latest_stable_python)
+        echo "  → Updating Python to $latest_python..."
+        if ! conda install -n "$env_name" "python=$latest_python" -y 2>&1; then
+            echo_skip "Python update to $latest_python skipped for $env_name (dependency conflicts)"
+        fi
     fi
     
     # Update pip
@@ -74,9 +85,7 @@ update_conda() {
     echo_info "Conda: Updating Conda..."
     conda update -n base conda -y 2>&1 || echo_warning "Conda self-update failed"
 
-    # Update base environment packages
-    echo_info "Conda: Updating base environment packages..."
-    conda update -n base --all -y 2>&1 || echo_warning "Some base packages could not be updated"
+    # Skip "conda update -n base --all" to avoid RemoveError (ruamel.yaml etc.); base is updated per-env below
 
     # Get list of environments
     echo_info "Conda: Updating all environments..."
