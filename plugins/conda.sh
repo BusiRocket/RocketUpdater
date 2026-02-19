@@ -13,7 +13,7 @@ get_latest_stable_python() {
     # This is more reliable than scraping python.org
     local version
     version=$(conda search python -c conda-forge 2>/dev/null | grep -E "^python\s+" | tail -1 | awk '{print $2}')
-    
+
     if [ -z "$version" ]; then
         # Fallback to a known stable version
         echo "3.14"
@@ -26,9 +26,9 @@ get_latest_stable_python() {
 update_conda_environment() {
     local env_name=$1
     local is_base=$2
-    
+
     echo_info "Processing environment: $env_name"
-    
+
     # Update all packages (skip --all for base to avoid removing conda deps like ruamel.yaml)
     if [ "$is_base" != "true" ]; then
         echo "  → Updating packages..."
@@ -36,7 +36,7 @@ update_conda_environment() {
             echo_warning "Some packages in $env_name could not be updated"
         fi
     fi
-    
+
     # Update Python: base stays on highest version conda supports (e.g. 3.13); other envs → latest (e.g. 3.14)
     if [ "$is_base" = "true" ]; then
         echo "  → Updating Python (base: highest version supported by conda)..."
@@ -51,12 +51,12 @@ update_conda_environment() {
             echo_skip "Python update to $latest_python skipped for $env_name (dependency conflicts)"
         fi
     fi
-    
+
     # Update pip
     echo "  → Updating pip..."
     conda install -n "$env_name" pip -y 2>/dev/null || true
     conda run -n "$env_name" pip install --upgrade pip 2>/dev/null || true
-    
+
     # Update pip packages using pip-review if available
     echo "  → Updating pip packages..."
     if conda run -n "$env_name" pip show pip-review >/dev/null 2>&1; then
@@ -67,7 +67,7 @@ update_conda_environment() {
             conda run -n "$env_name" pip-review --auto 2>/dev/null || true
         fi
     fi
-    
+
     echo_success "Environment $env_name updated"
 }
 
@@ -81,18 +81,18 @@ update_conda() {
     echo_info "Conda: Cleaning cache..."
     conda clean --all -y 2>&1 || true
 
-    # Update conda itself
+    # Update conda itself (use conda-forge so latest conda is installed and warning goes away)
     echo_info "Conda: Updating Conda..."
-    conda update -n base conda -y 2>&1 || echo_warning "Conda self-update failed"
+    conda update -n base -c conda-forge conda -y 2>&1 || echo_warning "Conda self-update failed"
 
     # Skip "conda update -n base --all" to avoid RemoveError (ruamel.yaml etc.); base is updated per-env below
 
     # Get list of environments
     echo_info "Conda: Updating all environments..."
-    
+
     local envs
     envs=$(conda env list | grep -v "^#" | grep -v "^$" | awk '{print $1}')
-    
+
     for env_name in $envs; do
         if [ -n "$env_name" ] && [ "$env_name" != "#" ]; then
             if [ "$env_name" = "base" ]; then

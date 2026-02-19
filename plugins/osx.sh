@@ -5,7 +5,7 @@ PLUGIN_VERSION="1.1.0"
 DISABLE=${DISABLE:-false}
 
 check_osx() {
-    [[ "$OSTYPE" == "darwin"* ]]
+    [[ $OSTYPE == "darwin"* ]]
 }
 
 update_osx() {
@@ -15,22 +15,22 @@ update_osx() {
     fi
 
     echo_info "macOS: Checking for software updates..."
-    
+
     # List available updates first
     local updates
     updates=$(softwareupdate -l 2>&1)
-    
+
     if echo "$updates" | grep -q "No new software available"; then
         echo_skip "No macOS updates available"
     else
         echo "$updates"
-        
+
         echo_info "macOS: Installing available updates..."
         # -i: install
         # -a: all available updates
         # Note: Some updates may require restart
         softwareupdate -ia 2>&1 || echo_warning "Some updates could not be installed"
-        
+
         # Check if restart is required
         if softwareupdate -l 2>&1 | grep -q "restart"; then
             echo_warning "A restart is required to complete some updates"
@@ -39,7 +39,7 @@ update_osx() {
 
     # Clean up system caches (safe operations only)
     echo_info "macOS: Cleaning user caches..."
-    
+
     # Clean user cache (safe)
     if [ -d ~/Library/Caches ]; then
         # Only clean known safe directories

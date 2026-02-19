@@ -26,23 +26,23 @@ command_exists() {
 run_plugin() {
     local plugin=$1
     local plugin_file="$SCRIPT_DIR/plugins/$plugin.sh"
-    
+
     if [ -f "$plugin_file" ]; then
         # Reset DISABLE for each plugin
         unset DISABLE
         source "$plugin_file"
-        
+
         if [ "$DISABLE" = "true" ]; then
             echo_yellow "⏭️  Plugin $plugin is disabled."
             SKIPPED_PLUGINS=$((SKIPPED_PLUGINS + 1))
             return
         fi
-        
+
         plugin_name=$(basename "$plugin" .sh)
         TOTAL_PLUGINS=$((TOTAL_PLUGINS + 1))
-        
+
         echo_cyan "📦 Updating $plugin_name..."
-        
+
         if try_plugin "update_$plugin_name"; then
             SUCCESSFUL_PLUGINS=$((SUCCESSFUL_PLUGINS + 1))
         else
@@ -53,7 +53,7 @@ run_plugin() {
                 FAILED_PLUGIN_LIST="$FAILED_PLUGIN_LIST $plugin"
             fi
         fi
-        
+
         echo_separator
     else
         echo_red "❌ Plugin $plugin not found."
@@ -87,7 +87,7 @@ load_and_update_plugins() {
     if [ -d "$SCRIPT_DIR/plugins" ] && [ "$(ls -A "$SCRIPT_DIR"/plugins/*.sh 2>/dev/null)" ]; then
         echo_blue '📂 Loading Plugins...'
         echo_separator
-        
+
         for plugin in "$SCRIPT_DIR"/plugins/*.sh; do
             run_plugin "$(basename "$plugin" .sh)"
         done
@@ -104,20 +104,20 @@ display_summary() {
     echo_blue "═══════════════════════════════════════════"
     echo ""
     echo_green "✅ Successful: $SUCCESSFUL_PLUGINS"
-    
+
     if [ "$FAILED_PLUGINS" -gt 0 ]; then
         echo_red "❌ Failed: $FAILED_PLUGINS"
     else
         echo "   Failed: 0"
     fi
-    
+
     if [ "$SKIPPED_PLUGINS" -gt 0 ]; then
         echo_yellow "⏭️  Skipped: $SKIPPED_PLUGINS"
     fi
-    
+
     echo ""
     echo_blue "───────────────────────────────────────────"
-    
+
     # Show failed plugins if any
     if [ "$FAILED_PLUGINS" -gt 0 ]; then
         echo_red "Failed plugins:"
@@ -126,9 +126,9 @@ display_summary() {
         done
         echo ""
     fi
-    
+
     echo_blue "═══════════════════════════════════════════"
-    
+
     if [ "$FAILED_PLUGINS" -eq 0 ]; then
         echo_green "🎉 All updates completed successfully!"
     else

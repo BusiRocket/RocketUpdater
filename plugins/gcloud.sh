@@ -14,4 +14,3 @@ update_gcloud() {
         gcloud components update --quiet
     fi
 }
-
