@@ -10,14 +10,14 @@ check_omzsh() {
 
 update_omzsh() {
     local zsh_dir="${ZSH:-$HOME/.oh-my-zsh}"
-    
+
     if ! check_omzsh; then
         echo_skip "Oh My Zsh is not installed. Skipping..."
         return 0
     fi
 
     echo_info "Oh My Zsh: Updating..."
-    
+
     # Check if upgrade script exists
     if [ -f "$zsh_dir/tools/upgrade.sh" ]; then
         # Run the upgrade script with zsh (Oh My Zsh requires zsh, not sh)
@@ -34,7 +34,7 @@ update_omzsh() {
     # Update custom plugins
     if [ -d "$zsh_dir/custom/plugins" ]; then
         echo_info "Oh My Zsh: Updating custom plugins..."
-        
+
         for plugin_dir in "$zsh_dir/custom/plugins"/*; do
             if [ -d "$plugin_dir/.git" ]; then
                 local plugin_name
@@ -48,7 +48,7 @@ update_omzsh() {
     # Update custom themes
     if [ -d "$zsh_dir/custom/themes" ]; then
         echo_info "Oh My Zsh: Updating custom themes..."
-        
+
         for theme_dir in "$zsh_dir/custom/themes"/*; do
             if [ -d "$theme_dir/.git" ]; then
                 local theme_name

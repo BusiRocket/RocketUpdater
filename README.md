@@ -41,6 +41,15 @@
 
 Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments.
 
+## Formatting
+
+Shell scripts are formatted with [shfmt](https://github.com/patrickvane/shfmt). Install it (e.g. `brew install shfmt`), then:
+
+- **Format all scripts:** `./scripts/format.sh`
+- **Check only (CI):** `./scripts/format.sh --check`
+
+Indent and style are defined in [.editorconfig](.editorconfig).
+
 ## Contributing
 
 We welcome contributions from the community! If you have suggestions for new features or improvements, feel free to open an issue or submit a pull request.

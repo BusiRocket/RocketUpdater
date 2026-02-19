@@ -65,4 +65,3 @@ update_rust() {
     echo_success "Rust update completed"
     return 0
 }
-
