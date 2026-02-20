@@ -37,13 +37,8 @@ update_conda_environment() {
         fi
     fi
 
-    # Update Python: base stays on highest version conda supports (e.g. 3.13); other envs → latest (e.g. 3.14)
-    if [ "$is_base" = "true" ]; then
-        echo "  → Updating Python (base: highest version supported by conda)..."
-        if ! conda update -n "$env_name" python -y 2>&1; then
-            echo_skip "Python update skipped for base (dependency constraints)"
-        fi
-    else
+    # Update Python: skip base (conda's own deps block python upgrade); other envs → latest (e.g. 3.14)
+    if [ "$is_base" != "true" ]; then
         local latest_python
         latest_python=$(get_latest_stable_python)
         echo "  → Updating Python to $latest_python..."
@@ -81,9 +76,9 @@ update_conda() {
     echo_info "Conda: Cleaning cache..."
     conda clean --all -y 2>&1 || true
 
-    # Update conda itself (use conda-forge so latest conda is installed and warning goes away)
+    # Update conda itself: use only conda-forge so the latest conda (e.g. 26.1.1) is installed
     echo_info "Conda: Updating Conda..."
-    conda update -n base -c conda-forge conda -y 2>&1 || echo_warning "Conda self-update failed"
+    conda update -n base -c conda-forge --override-channels conda -y 2>&1 || echo_warning "Conda self-update failed"
 
     # Skip "conda update -n base --all" to avoid RemoveError (ruamel.yaml etc.); base is updated per-env below
 
