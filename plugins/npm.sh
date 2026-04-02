@@ -13,6 +13,8 @@ check_ncu() {
 }
 
 update_npm() {
+    local has_failures=0
+
     if ! check_npm; then
         echo_skip "NPM is not installed. Skipping..."
         return 0
@@ -37,7 +39,7 @@ update_npm() {
             echo_info "NPM: Updating global packages..."
             # Parse ncu output format: "package  current  →  new"
             # Use awk to properly extract package name (field 1) and new version (field after →)
-            echo "$outdated_output" | grep "→" | while read -r line; do
+            while read -r line; do
                 # Extract package name (first non-empty field) and new version (after →)
                 local pkg_name new_version
                 pkg_name=$(echo "$line" | awk '{print $1}')
@@ -45,9 +47,12 @@ update_npm() {
 
                 if [ -n "$pkg_name" ] && [ -n "$new_version" ]; then
                     echo "  → Updating $pkg_name to $new_version..."
-                    npm install -g "${pkg_name}@${new_version}" 2>&1 || true
+                    if ! npm install -g "${pkg_name}@${new_version}" 2>&1; then
+                        has_failures=1
+                        echo_warning "Failed to update global package: $pkg_name@$new_version"
+                    fi
                 fi
-            done
+            done < <(echo "$outdated_output" | grep "→")
         else
             echo_skip "All global packages are up to date"
         fi
@@ -65,6 +70,11 @@ update_npm() {
 
     # Verify cache
     npm cache verify 2>&1 || true
+
+    if [ "$has_failures" -eq 1 ]; then
+        echo_error "NPM update completed with errors"
+        return 1
+    fi
 
     echo_success "NPM update completed"
     return 0
