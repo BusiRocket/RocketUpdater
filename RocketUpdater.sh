@@ -38,6 +38,7 @@ run_plugin() {
             return
         fi
 
+        local plugin_name
         plugin_name=$(basename "$plugin" .sh)
         TOTAL_PLUGINS=$((TOTAL_PLUGINS + 1))
 
@@ -79,6 +80,11 @@ try_plugin() {
 # Check if a specific plugin was passed as an argument
 if [ -n "$1" ]; then
     run_plugin "$1"
+
+    if [ "$FAILED_PLUGINS" -gt 0 ]; then
+        exit 1
+    fi
+
     exit 0
 fi
 
@@ -148,3 +154,7 @@ load_and_update_plugins
 
 # Display summary
 display_summary
+
+if [ "$FAILED_PLUGINS" -gt 0 ]; then
+    exit 1
+fi
