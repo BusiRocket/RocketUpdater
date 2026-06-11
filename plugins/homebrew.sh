@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Homebrew"
-PLUGIN_VERSION="1.0.0"
+PLUGIN_VERSION="1.0.1"
 DISABLE=${DISABLE:-false} # To disable, set DISABLE=true
 
 check_homebrew() {
@@ -17,6 +17,11 @@ update_homebrew() {
         echo_skip "Homebrew is not installed. Skipping..."
         return 0
     fi
+
+    # The user installs their own third-party taps deliberately. Skip Homebrew's
+    # tap-trust prompts so update/upgrade/cleanup process them instead of flooding
+    # the run with "tap is not trusted" warnings and silently skipping formulae.
+    export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
 
     echo_yellow 'Homebrew: Updating...'
     brew_update_output=$(brew update 2>&1)

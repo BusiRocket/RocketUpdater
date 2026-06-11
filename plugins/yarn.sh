@@ -1,11 +1,15 @@
 #!/bin/bash
 
 PLUGIN_NAME="Yarn"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="1.2.0"
 DISABLE=${DISABLE:-false}
 
 check_yarn() {
     command_exists yarn
+}
+
+check_corepack() {
+    command_exists corepack
 }
 
 get_yarn_version() {
@@ -23,29 +27,37 @@ update_yarn() {
 
     echo_info "Yarn: Detected version $yarn_major_version.x"
 
-    # Yarn 1.x (Classic) vs Yarn 2+ (Berry) have different update mechanisms
     if [ "$yarn_major_version" = "1" ]; then
-        # Yarn Classic - update via npm (use --force to handle existing symlinks)
         echo_info "Yarn Classic: Updating via npm..."
-        npm install -g yarn@latest --force 2>&1 || echo_warning "Yarn update via npm failed"
+        npm install -g yarn@latest --force 2>&1 \
+            || echo_warning "Yarn update via npm failed"
     else
-        # Yarn Berry (2+) - use set version
-        echo_info "Yarn Berry: Updating to latest stable..."
-        yarn set version stable 2>&1 || echo_warning "Yarn set version failed"
+        if check_corepack; then
+            echo_info "Yarn Berry: Updating global yarn via corepack..."
+            corepack prepare yarn@stable --activate 2>&1 \
+                || echo_warning "corepack prepare yarn@stable failed"
+        else
+            echo_info "Yarn Berry: corepack not found — falling back to npm..."
+            npm install -g yarn@latest --force 2>&1 \
+                || echo_warning "Yarn update via npm failed"
+        fi
     fi
 
-    # Clean cache
     echo_info "Yarn: Cleaning cache..."
     if [ "$yarn_major_version" = "1" ]; then
-        yarn cache clean 2>&1 || true
+        (cd "$HOME" && yarn cache clean) 2>&1 || true
     else
-        yarn cache clean --all 2>&1 || true
+        if [ -f ".yarnrc.yml" ] || [ -d ".yarn" ]; then
+            yarn cache clean --all 2>&1 || true
+        else
+            echo_skip "Yarn Berry cache is per-project; skipping (not in a Berry project)"
+        fi
     fi
 
-    # Update global packages (Yarn 1.x only)
     if [ "$yarn_major_version" = "1" ]; then
         echo_info "Yarn: Checking global packages..."
-        yarn global upgrade 2>&1 || echo_skip "No global packages to update"
+        (cd "$HOME" && yarn global upgrade) 2>&1 \
+            || echo_skip "No global packages to update"
     fi
 
     echo_success "Yarn update completed"

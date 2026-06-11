@@ -1,13 +1,20 @@
 #!/bin/bash
 
 PLUGIN_NAME="Composer"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="1.3.0"
 DISABLE=${DISABLE:-false}
 
 COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.composer}"
 
 check_composer() {
     command_exists composer
+}
+
+is_homebrew_composer() {
+    command_exists brew || return 1
+    local composer_path
+    composer_path=$(command -v composer)
+    [[ "$composer_path" == "$(brew --prefix)"/* ]]
 }
 
 update_composer() {
@@ -17,17 +24,24 @@ update_composer() {
     fi
 
     echo_info "Composer: Clearing cache..."
-    composer clearcache 2>/dev/null || true
+    composer --no-interaction --working-dir="$HOME" clearcache || true
 
-    echo_info "Composer: Updating Composer itself..."
-    if ! composer self-update 2>&1; then
-        echo_warning "Composer self-update failed (may require sudo)"
+    if is_homebrew_composer; then
+        echo_info "Composer: Homebrew-managed — upgrading via brew..."
+        if ! brew upgrade composer 2>&1; then
+            echo_warning "brew upgrade composer failed"
+        fi
+    else
+        echo_info "Composer: Updating Composer itself..."
+        if ! composer --no-interaction --working-dir="$HOME" self-update 2>&1; then
+            echo_warning "Composer self-update failed (may require sudo)"
+        fi
     fi
 
     # Check if global composer.json exists before updating global packages
     if [ -f "$COMPOSER_HOME/composer.json" ]; then
         echo_info "Composer: Updating global packages..."
-        composer global update 2>&1 || echo_warning "Global packages update failed"
+        composer --no-interaction global update 2>&1 || echo_warning "Global packages update failed"
     else
         echo_skip "No global composer.json found at $COMPOSER_HOME. Skipping global update."
     fi
