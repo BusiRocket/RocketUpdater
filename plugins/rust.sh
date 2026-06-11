@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Rust"
-PLUGIN_VERSION="1.0.2"
+PLUGIN_VERSION="1.0.3"
 DISABLE=${DISABLE:-false}
 
 check_rustup() {
@@ -14,19 +14,14 @@ check_cargo_install_update() {
 }
 
 is_real_cargo_install_update() {
-    # Some setups may have a shim/symlink that actually invokes plain `cargo`,
-    # which would fail with "USAGE: cargo <SUBCOMMAND>" when we pass flags.
+    # Some setups have a shim/symlink that actually invokes plain `cargo`,
+    # which fails with "Usage: cargo <COMMAND>" (or the older "cargo <SUBCOMMAND>")
+    # when we pass `--all`. Detect the genuine cargo-update binary by a positive
+    # signal: its help text references "install-update" — plain cargo never does.
     local help_out
     help_out=$(cargo-install-update --help 2>&1 || true)
 
-    # Match the actual help format which spans multiple lines:
-    # USAGE:
-    #     cargo <SUBCOMMAND>
-    if echo "$help_out" | grep -q "cargo <SUBCOMMAND>"; then
-        return 1
-    fi
-
-    return 0
+    echo "$help_out" | grep -q "install-update"
 }
 
 check_cargo_install_update_subcommand() {

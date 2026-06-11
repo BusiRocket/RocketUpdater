@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="PEAR"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="1.1.1"
 DISABLE=${DISABLE:-false}
 
 check_pear() {
@@ -60,7 +60,15 @@ update_pear() {
     # Step 1: Clear caches
     if [ "$has_pear" = true ]; then
         echo_info "PEAR: Clearing cache..."
-        run_pear_command "clear-cache"
+        local clear_output
+        clear_output=$(run_pear_command "clear-cache")
+        printf '%s\n' "$clear_output"
+        # Cache files left by previous `sudo pear upgrade` runs are root-owned,
+        # so a non-sudo clear-cache reports "failed to delete". Retry with sudo.
+        if echo "$clear_output" | grep -q "failed to delete"; then
+            echo_info "PEAR: Some cache files are root-owned; clearing with sudo..."
+            run_pear_command_sudo "clear-cache"
+        fi
     fi
 
     # Step 2: Update ALL channels first (fixes "unsupported protocol" error)
