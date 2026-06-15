@@ -8,11 +8,36 @@ check_homebrew() {
     command_exists brew
 }
 
-update_homebrew() {
-    local brew_update_output
-    local brew_upgrade_output
-    local brew_cleanup_output
+run_brew_step() {
+    local step_name=$1
+    local command=$2
+    local output=""
+    local attempt=1
+    local max_attempts=3
 
+    while [ "$attempt" -le "$max_attempts" ]; do
+        output=$(eval "$command" 2>&1)
+        local status=$?
+
+        printf '%s\n' "$output"
+
+        if [ "$status" -eq 0 ]; then
+            return 0
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            echo_warning "$step_name failed on attempt $attempt/$max_attempts. Retrying in 5 seconds..."
+            sleep 5
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    echo_error "$step_name reported errors"
+    return 1
+}
+
+update_homebrew() {
     if ! check_homebrew; then
         echo_skip "Homebrew is not installed. Skipping..."
         return 0
@@ -24,28 +49,16 @@ update_homebrew() {
     export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
 
     echo_yellow 'Homebrew: Updating...'
-    brew_update_output=$(brew update 2>&1)
-    printf '%s\n' "$brew_update_output"
-
-    if echo "$brew_update_output" | grep -q "^Error:"; then
-        echo_error "Homebrew update reported errors"
+    if ! run_brew_step "Homebrew update" "brew update"; then
         return 1
     fi
 
-    brew_upgrade_output=$(brew upgrade --greedy 2>&1)
-    printf '%s\n' "$brew_upgrade_output"
-
-    if echo "$brew_upgrade_output" | grep -q "^Error:"; then
-        echo_error "Homebrew upgrade reported errors"
+    if ! run_brew_step "Homebrew upgrade" "brew upgrade --greedy"; then
         return 1
     fi
 
     echo_yellow 'Homebrew: Cleaning...'
-    brew_cleanup_output=$(brew cleanup 2>&1)
-    printf '%s\n' "$brew_cleanup_output"
-
-    if echo "$brew_cleanup_output" | grep -q "^Error:"; then
-        echo_error "Homebrew cleanup reported errors"
+    if ! run_brew_step "Homebrew cleanup" "brew cleanup"; then
         return 1
     fi
 
