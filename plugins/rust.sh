@@ -1,30 +1,20 @@
 #!/bin/bash
 
 PLUGIN_NAME="Rust"
-PLUGIN_VERSION="1.0.3"
+PLUGIN_VERSION="1.0.4"
 DISABLE=${DISABLE:-false}
 
 check_rustup() {
     command_exists rustup
 }
 
-check_cargo_install_update() {
-    # Provided by the "cargo-update" crate (installed via `cargo install cargo-update`)
-    command_exists cargo-install-update
-}
-
-is_real_cargo_install_update() {
-    # Some setups have a shim/symlink that actually invokes plain `cargo`,
-    # which fails with "Usage: cargo <COMMAND>" (or the older "cargo <SUBCOMMAND>")
-    # when we pass `--all`. Detect the genuine cargo-update binary by a positive
-    # signal: its help text references "install-update" — plain cargo never does.
-    local help_out
-    help_out=$(cargo-install-update --help 2>&1 || true)
-
-    echo "$help_out" | grep -q "install-update"
-}
-
 check_cargo_install_update_subcommand() {
+    # Provided by the "cargo-update" crate (installed via `cargo install cargo-update`).
+    # Invoke it the canonical way — as a cargo subcommand — so cargo dispatches to the
+    # real `cargo-install-update` binary. That binary still expects `install-update` as
+    # its first argument even when called directly, so `cargo-install-update --all` fails
+    # with "Usage: cargo <COMMAND>"; the `cargo install-update` dispatch is the only
+    # reliable form.
     command_exists cargo && cargo install-update --help >/dev/null 2>&1
 }
 
@@ -48,9 +38,7 @@ update_rust() {
 
     # Optionally update cargo-installed binaries if the helper is available
     echo_info "Rust: Updating cargo-installed binaries..."
-    if check_cargo_install_update && is_real_cargo_install_update; then
-        cargo-install-update --all 2>&1 || echo_warning "cargo-install-update failed"
-    elif check_cargo_install_update_subcommand; then
+    if check_cargo_install_update_subcommand; then
         cargo install-update --all 2>&1 || echo_warning "cargo install-update failed"
     else
         echo_skip "Cargo binaries update skipped (cargo-update not installed)"
