@@ -53,8 +53,12 @@ update_homebrew() {
         return 1
     fi
 
+    # A single broken cask/formula (e.g. one left half-installed by an
+    # interrupted run) makes brew upgrade exit non-zero. That must not abort the
+    # step or skip cleanup: log it and continue.
+    echo_yellow 'Homebrew: Upgrading...'
     if ! run_brew_step "Homebrew upgrade" "brew upgrade --greedy"; then
-        return 1
+        echo_error "Homebrew upgrade reported errors (continuing with cleanup)"
     fi
 
     echo_yellow 'Homebrew: Cleaning...'
