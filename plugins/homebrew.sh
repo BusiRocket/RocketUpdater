@@ -61,8 +61,10 @@ update_homebrew() {
         echo_error "Homebrew upgrade reported errors (continuing with cleanup)"
     fi
 
+    # --prune=all also drops cached downloads of current versions; plain
+    # cleanup keeps them and they accumulate hundreds of MB.
     echo_yellow 'Homebrew: Cleaning...'
-    if ! run_brew_step "Homebrew cleanup" "brew cleanup"; then
+    if ! run_brew_step "Homebrew cleanup" "brew cleanup --prune=all"; then
         return 1
     fi
 

@@ -11,6 +11,8 @@
 - **Rust Toolchain Updates**: Update Rust toolchains via rustup (and optionally cargo-installed binaries).
 - **Conda Environment Management**: Deactivate current Conda environments, update Conda itself, and ensure all environments have the latest Python version and packages.
 - **Docker Cleanup**: Remove exited containers and unused images to free up space.
+- **Mole Integration**: Run [Mole](https://mole.fit) (`mo clean`) as a plugin for a deep, whitelist-aware macOS cache cleanup.
+- **Dev Cache Cleanup**: Prune uv, pnpm store, and pip caches not covered by other plugins.
 - **macOS Updates**: Keep your macOS up-to-date with the latest software updates.
 - **PEAR and PECL Updates**: Clear cache and upgrade PEAR and PECL packages.
 - **Additional Utilities**: Update Browsers List with npx.
