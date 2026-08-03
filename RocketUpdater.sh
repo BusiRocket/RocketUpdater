@@ -140,11 +140,16 @@ load_and_update_plugins() {
         echo_cyan "🔢 Order: $(echo "$plugin_order" | tr '\n' ' ')"
         echo_separator
 
+        # Read the plugin list on fd 3, not stdin. Plugins run commands that
+        # read stdin themselves (brew upgrade shelling out to npm install, for
+        # one), and on stdin they would swallow the rest of the list and end the
+        # run after the first plugin. Piping into the loop is wrong for a second
+        # reason: it puts the body in a subshell, losing the summary counters.
         local plugin
-        while read -r plugin; do
+        while read -r plugin <&3; do
             [ -n "$plugin" ] || continue
             run_plugin "$plugin"
-        done <<<"$plugin_order"
+        done 3<<<"$plugin_order"
     else
         echo_red '❌ No plugins found. Please ensure the plugins directory exists and contains plugins.'
     fi

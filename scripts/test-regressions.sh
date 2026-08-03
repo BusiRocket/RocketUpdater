@@ -108,4 +108,51 @@ grep -q "Stashing local changes for powerlevel10k" "$OMZSH_OUTPUT"
 grep -q "Restoring local changes for powerlevel10k" "$OMZSH_OUTPUT"
 grep -q "Oh My Zsh update completed" "$OMZSH_OUTPUT"
 
+# A plugin that consumes stdin must not truncate the plugin list. Reading the
+# list on stdin let brew upgrade (shelling out to npm install) swallow the
+# remaining plugin names, ending the run after the first plugin.
+FAKE_ROOT="$TMP_DIR/fake"
+mkdir -p "$FAKE_ROOT/plugins"
+cp "$ROOT_DIR/RocketUpdater.sh" "$FAKE_ROOT/"
+cp -R "$ROOT_DIR/lib" "$FAKE_ROOT/"
+
+cat >"$FAKE_ROOT/plugins/greedy.sh" <<'EOF'
+PLUGIN_PRIORITY=10
+update_greedy() {
+    cat >/dev/null
+    echo "greedy plugin ran"
+}
+EOF
+
+cat >"$FAKE_ROOT/plugins/tail_end.sh" <<'EOF'
+PLUGIN_PRIORITY=90
+update_tail_end() {
+    echo "tail_end plugin ran"
+}
+EOF
+
+STDIN_OUTPUT="$TMP_DIR/stdin-output.txt"
+set +e
+"$FAKE_ROOT/RocketUpdater.sh" >"$STDIN_OUTPUT" 2>&1
+STDIN_EXIT_CODE=$?
+set -e
+
+if [ "$STDIN_EXIT_CODE" -ne 0 ]; then
+    echo "Expected the run to succeed when a plugin consumes stdin"
+    cat "$STDIN_OUTPUT"
+    exit 1
+fi
+
+if ! grep -q "tail_end plugin ran" "$STDIN_OUTPUT"; then
+    echo "A plugin consuming stdin truncated the plugin list"
+    cat "$STDIN_OUTPUT"
+    exit 1
+fi
+
+grep -q "greedy plugin ran" "$STDIN_OUTPUT"
+grep -q "Successful: 2" "$STDIN_OUTPUT"
+
+# Lower PLUGIN_PRIORITY runs first, regardless of alphabetical order.
+grep -q "Order: greedy tail_end" "$STDIN_OUTPUT"
+
 echo "All regression checks passed."
