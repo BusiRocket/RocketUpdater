@@ -24,6 +24,66 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Ask for root once, here, while stdin is still the terminal. Plugins run with
+# no stdin on purpose, so they cannot prompt themselves without stalling the
+# whole run; they read SUDO_AVAILABLE and use the credentials cached by this
+# step. Declining is a supported answer: privileged work then falls back to an
+# unprivileged attempt.
+SUDO_AVAILABLE=false
+SUDO_KEEPALIVE_PID=""
+
+request_sudo_access() {
+    if ! command_exists sudo; then
+        return 0
+    fi
+
+    if sudo -n true 2>/dev/null; then
+        SUDO_AVAILABLE=true
+        start_sudo_keepalive
+        return 0
+    fi
+
+    # No terminal means no way to answer, so do not let a cron or CI run block.
+    if [ ! -t 0 ]; then
+        echo_yellow "🔐 No terminal available for a sudo prompt; continuing without root."
+        echo_separator
+        return 0
+    fi
+
+    echo_yellow "🔐 Some steps do more as root (PEAR/PECL upgrades, macOS cache purge)."
+    echo_yellow "   Enter your password to allow them, or press Ctrl-D to continue without."
+
+    if sudo -v; then
+        SUDO_AVAILABLE=true
+        start_sudo_keepalive
+        echo_green "✅ Root access granted for this run."
+    else
+        echo_yellow "⏭️  Continuing without root. Privileged steps will be attempted unprivileged."
+    fi
+
+    echo_separator
+}
+
+# A full run outlasts sudo's timestamp (five minutes on macOS), so refresh it
+# until the script exits. Without this, the steps that need root run last and
+# would find the grant already expired.
+start_sudo_keepalive() {
+    while true; do
+        sleep 60
+        kill -0 "$$" 2>/dev/null || exit 0
+        sudo -n true 2>/dev/null || exit 0
+    done &
+    SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+    [ -n "$SUDO_KEEPALIVE_PID" ] || return 0
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    SUDO_KEEPALIVE_PID=""
+}
+
+trap stop_sudo_keepalive EXIT
+
 # Plugin execution order, in the style of SysV init sequence numbers: lower
 # runs first, and the gaps leave room to insert a plugin without renumbering.
 #
@@ -125,6 +185,7 @@ try_plugin() {
 
 # Check if a specific plugin was passed as an argument
 if [ -n "$1" ]; then
+    request_sudo_access
     run_plugin "$1"
 
     if [ "$FAILED_PLUGINS" -gt 0 ]; then
@@ -206,6 +267,8 @@ if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
     echo_yellow "🔄 Deactivating the current conda environment ($CONDA_DEFAULT_ENV)."
     conda deactivate
 fi
+
+request_sudo_access
 
 echo_blue '🔄 Updating Plugins...'
 echo_separator

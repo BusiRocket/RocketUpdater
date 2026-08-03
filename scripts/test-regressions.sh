@@ -67,7 +67,7 @@ chmod +x "$TMP_DIR/bin/npm" "$TMP_DIR/bin/ncu" "$TMP_DIR/bin/git"
 
 NPM_OUTPUT="$TMP_DIR/npm-output.txt"
 set +e
-PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" npm >"$NPM_OUTPUT" 2>&1
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" npm </dev/null >"$NPM_OUTPUT" 2>&1
 NPM_EXIT_CODE=$?
 set -e
 
@@ -92,7 +92,7 @@ chmod +x "$ZSH_DIR/tools/upgrade.sh"
 
 OMZSH_OUTPUT="$TMP_DIR/omzsh-output.txt"
 set +e
-PATH="$TMP_DIR/bin:$PATH" ZSH="$ZSH_DIR" "$ROOT_DIR/RocketUpdater.sh" omzsh >"$OMZSH_OUTPUT" 2>&1
+PATH="$TMP_DIR/bin:$PATH" ZSH="$ZSH_DIR" "$ROOT_DIR/RocketUpdater.sh" omzsh </dev/null >"$OMZSH_OUTPUT" 2>&1
 OMZSH_EXIT_CODE=$?
 set -e
 
@@ -190,7 +190,7 @@ chmod +x "$TMP_DIR/bin/yarn" "$TMP_DIR/bin/corepack"
 
 YARN_OUTPUT="$TMP_DIR/yarn-output.txt"
 set +e
-PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" yarn >"$YARN_OUTPUT" 2>&1
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" yarn </dev/null >"$YARN_OUTPUT" 2>&1
 YARN_EXIT_CODE=$?
 set -e
 
@@ -208,41 +208,84 @@ fi
 
 grep -q "Yarn update completed" "$YARN_OUTPUT"
 
-# With no stdin there is nothing to type a password into, so the pear plugin
-# must detect that sudo has no cached credentials and skip the privileged steps
-# with an actionable message instead of failing obscurely.
+# Name the subcommand, so an assertion can tell "pear upgrade actually ran
+# unprivileged" apart from "some other pear subcommand ran".
+cat >"$TMP_DIR/bin/pear" <<'EOF'
+#!/bin/bash
+echo "unprivileged pear $1 completed"
+EOF
+
+cat >"$TMP_DIR/bin/pecl" <<'EOF'
+#!/bin/bash
+echo "unprivileged pecl $1 completed"
+EOF
+
+chmod +x "$TMP_DIR/bin/pear" "$TMP_DIR/bin/pecl"
+
+# Case 1: root was never granted. Without a terminal there is nothing to type a
+# password into, so the run must say so and fall back to unprivileged upgrades
+# rather than prompting, blocking or skipping the work.
 cat >"$TMP_DIR/bin/sudo" <<'EOF'
 #!/bin/bash
 echo "sudo: a password is required" >&2
 exit 1
 EOF
 
-cat >"$TMP_DIR/bin/pear" <<'EOF'
-#!/bin/bash
-exit 0
-EOF
+chmod +x "$TMP_DIR/bin/sudo"
 
-cat >"$TMP_DIR/bin/pecl" <<'EOF'
-#!/bin/bash
-exit 0
-EOF
-
-chmod +x "$TMP_DIR/bin/sudo" "$TMP_DIR/bin/pear" "$TMP_DIR/bin/pecl"
-
-PEAR_OUTPUT="$TMP_DIR/pear-output.txt"
+PEAR_OUTPUT="$TMP_DIR/pear-nosudo.txt"
 set +e
-PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" pear >"$PEAR_OUTPUT" 2>&1
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" pear </dev/null >"$PEAR_OUTPUT" 2>&1
 PEAR_EXIT_CODE=$?
 set -e
 
 if [ "$PEAR_EXIT_CODE" -ne 0 ]; then
-    echo "Expected the pear plugin to succeed without cached sudo credentials"
+    echo "Expected the pear plugin to succeed with no sudo available"
     cat "$PEAR_OUTPUT"
     exit 1
 fi
 
-grep -q "PEAR upgrades need root" "$PEAR_OUTPUT"
-grep -q "PECL upgrades need root" "$PEAR_OUTPUT"
+grep -q "No terminal available for a sudo prompt" "$PEAR_OUTPUT"
 grep -q "PEAR/PECL update completed" "$PEAR_OUTPUT"
+
+# Case 2: root was granted, but the privileged command fails anyway. Each step
+# must report the failure and retry the same command unprivileged.
+cat >"$TMP_DIR/bin/sudo" <<'EOF'
+#!/bin/bash
+if [ "$1" = "-n" ] && [ "$2" = "true" ]; then
+    exit 0
+fi
+
+echo "sudo: unable to execute the requested command" >&2
+exit 1
+EOF
+
+chmod +x "$TMP_DIR/bin/sudo"
+
+PEAR_FALLBACK_OUTPUT="$TMP_DIR/pear-fallback.txt"
+set +e
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" pear </dev/null >"$PEAR_FALLBACK_OUTPUT" 2>&1
+PEAR_FALLBACK_EXIT_CODE=$?
+set -e
+
+if [ "$PEAR_FALLBACK_EXIT_CODE" -ne 0 ]; then
+    echo "Expected the pear plugin to fall back when the privileged command fails"
+    cat "$PEAR_FALLBACK_OUTPUT"
+    exit 1
+fi
+
+if ! grep -q "privileged 'upgrade' failed; retrying without sudo" "$PEAR_FALLBACK_OUTPUT"; then
+    echo "A failing privileged pear command did not fall back to an unprivileged retry"
+    cat "$PEAR_FALLBACK_OUTPUT"
+    exit 1
+fi
+
+if ! grep -q "unprivileged pear upgrade completed" "$PEAR_FALLBACK_OUTPUT"; then
+    echo "The unprivileged retry of 'pear upgrade' never ran"
+    cat "$PEAR_FALLBACK_OUTPUT"
+    exit 1
+fi
+
+grep -q "PEAR/PECL update completed" "$PEAR_FALLBACK_OUTPUT"
 
 echo "All regression checks passed."

@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Root access is requested once at the start of a run, while stdin is still the
+  terminal, and the grant is refreshed until the run finishes so it does not
+  expire before the steps that need it. Declining continues the run.
+
+### Changed
+
+- Privileged steps in the `pear` plugin fall back to an unprivileged attempt
+  instead of being skipped: without a grant, and also when the privileged
+  command itself fails for any reason.
+
 ## [1.0.0] - 2026-08-03
 
 First tagged release. The tool has been in daily use for some time; this entry

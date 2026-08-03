@@ -43,6 +43,23 @@
 
 Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments.
 
+## Root access
+
+Some steps do more as root: PEAR and PECL write into system directories, and the
+macOS plugin purges the disk cache. RocketUpdater asks for your password once, at
+the start of the run, and keeps the grant alive until it finishes.
+
+Declining is a supported answer. Press Ctrl-D and the run continues; the steps
+that wanted root are attempted unprivileged instead of being skipped. The same
+fallback applies when a privileged command fails for any other reason, so a
+`sudo` that is granted but cannot run the command still ends with an attempt
+rather than an error.
+
+Plugins never prompt on their own. They run with no stdin, so a tool that asks a
+question gets EOF and fails on the record instead of stalling the run on a
+prompt that may not even be visible. When there is no terminal at all (cron, CI)
+the password step is skipped with a note.
+
 ## Plugin order
 
 Plugins run in priority order, in the style of SysV init sequence numbers:

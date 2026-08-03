@@ -1,60 +1,74 @@
 #!/bin/bash
 
 PLUGIN_NAME="PEAR"
-PLUGIN_VERSION="1.2.0"
+PLUGIN_VERSION="1.3.0"
 DISABLE=${DISABLE:-false}
 
 check_pear() {
     command_exists pear
 }
 
-# Plugins run with no stdin, so a password prompt cannot be answered. Report
-# whether sudo already has cached credentials and let the caller skip the
-# privileged steps with an actionable message rather than fail obscurely.
-check_sudo_credentials() {
-    sudo -n true 2>/dev/null
-}
-
 check_pecl() {
     command_exists pecl
+}
+
+# PHP warnings are common with newer PHP versions and drown the real output.
+filter_php_noise() {
+    grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
 }
 
 run_pear_command() {
     local cmd=$1
     shift
-    # Run pear and filter out PHP warnings (common with newer PHP versions)
-    pear "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
-}
-
-run_pear_command_sudo() {
-    local cmd=$1
-    shift
-    # Run pear with sudo and filter out PHP warnings
-    sudo -n pear "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
+    pear "$cmd" "$@" 2>&1 | filter_php_noise
 }
 
 run_pecl_command() {
     local cmd=$1
     shift
-    # Run pecl and filter out PHP warnings (common with newer PHP versions)
-    pecl "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
+    pecl "$cmd" "$@" 2>&1 | filter_php_noise
 }
 
-run_pecl_command_sudo() {
+# Prefer root, since pear and pecl write into system directories, but never let
+# that stop the upgrade. Without a grant, or when the privileged call fails for
+# any reason, retry unprivileged: a user-owned install upgrades fine that way.
+# The output is captured rather than piped so the status is the command's own
+# and not the filter's.
+run_pear_command_privileged() {
     local cmd=$1
     shift
-    # Run pecl with sudo and filter out PHP warnings
-    sudo -n pecl "$cmd" "$@" 2>&1 | grep -v "^PHP Warning:" | grep -v "^Warning:" | grep -v "Cannot use bool as array" || true
+    local output
+
+    if [ "${SUDO_AVAILABLE:-false}" = true ]; then
+        if output=$(sudo -n pear "$cmd" "$@" 2>&1); then
+            printf '%s\n' "$output" | filter_php_noise
+            return 0
+        fi
+        echo_warning "PEAR: privileged '$cmd' failed; retrying without sudo..."
+    fi
+
+    run_pear_command "$cmd" "$@"
+}
+
+run_pecl_command_privileged() {
+    local cmd=$1
+    shift
+    local output
+
+    if [ "${SUDO_AVAILABLE:-false}" = true ]; then
+        if output=$(sudo -n pecl "$cmd" "$@" 2>&1); then
+            printf '%s\n' "$output" | filter_php_noise
+            return 0
+        fi
+        echo_warning "PECL: privileged '$cmd' failed; retrying without sudo..."
+    fi
+
+    run_pecl_command "$cmd" "$@"
 }
 
 update_pear() {
     local has_pear=false
     local has_pecl=false
-    local has_sudo=false
-
-    if check_sudo_credentials; then
-        has_sudo=true
-    fi
 
     if check_pear; then
         has_pear=true
@@ -78,12 +92,8 @@ update_pear() {
         # Cache files left by previous `sudo pear upgrade` runs are root-owned,
         # so a non-sudo clear-cache reports "failed to delete". Retry with sudo.
         if echo "$clear_output" | grep -q "failed to delete"; then
-            if [ "$has_sudo" = true ]; then
-                echo_info "PEAR: Some cache files are root-owned; clearing with sudo..."
-                run_pear_command_sudo "clear-cache"
-            else
-                echo_skip "Root-owned cache files left in place (no cached sudo credentials)"
-            fi
+            echo_info "PEAR: Some cache files are root-owned; retrying as root..."
+            run_pear_command_privileged "clear-cache"
         fi
     fi
 
@@ -101,21 +111,15 @@ update_pear() {
 
     # Step 3: Upgrade PEAR packages first (required before PECL upgrades)
     if [ "$has_pear" = true ]; then
-        if [ "$has_sudo" = true ]; then
-            echo_info "PEAR: Upgrading PEAR itself..."
-            run_pear_command_sudo "upgrade" "--force" "PEAR"
+        echo_info "PEAR: Upgrading PEAR itself..."
+        run_pear_command_privileged "upgrade" "--force" "PEAR"
 
-            echo_info "PEAR: Upgrading all packages..."
-            run_pear_command_sudo "upgrade" "--force"
-        else
-            echo_skip "PEAR upgrades need root; run 'sudo -v' before RocketUpdater to include them"
-        fi
+        echo_info "PEAR: Upgrading all packages..."
+        run_pear_command_privileged "upgrade" "--force"
     fi
 
     # Step 4: Upgrade PECL extensions (after PEAR is fully updated)
-    if [ "$has_pecl" = true ] && [ "$has_sudo" = false ]; then
-        echo_skip "PECL upgrades need root; run 'sudo -v' before RocketUpdater to include them"
-    elif [ "$has_pecl" = true ]; then
+    if [ "$has_pecl" = true ]; then
         echo_info "PECL: Upgrading installed extensions..."
         # Get list of installed PECL packages and upgrade each with --force
         local pecl_packages
@@ -124,7 +128,7 @@ update_pear() {
         if [ -n "$pecl_packages" ]; then
             for pkg in $pecl_packages; do
                 echo "  → Upgrading $pkg..."
-                run_pecl_command_sudo "upgrade" "--force" "$pkg"
+                run_pecl_command_privileged "upgrade" "--force" "$pkg"
             done
         else
             echo_skip "No PECL extensions installed"
