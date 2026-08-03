@@ -13,7 +13,7 @@ check_corepack() {
 }
 
 get_yarn_version() {
-    yarn --version 2>/dev/null | cut -d. -f1
+    yarn --version </dev/null 2>/dev/null | cut -d. -f1
 }
 
 update_yarn() {
@@ -21,6 +21,13 @@ update_yarn() {
         echo_skip "Yarn is not installed. Skipping..."
         return 0
     fi
+
+    # When yarn is a Corepack shim, the shim defaults
+    # COREPACK_ENABLE_DOWNLOAD_PROMPT to 1, so the very first `yarn --version`
+    # asks on stdin before fetching the pinned release. That prompt goes to
+    # stderr, which this plugin discards, so the run blocked forever with no
+    # output at all. 0 keeps the download and drops the question.
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
     local yarn_major_version
     yarn_major_version=$(get_yarn_version)

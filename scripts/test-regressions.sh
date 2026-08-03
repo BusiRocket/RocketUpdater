@@ -155,4 +155,46 @@ grep -q "Successful: 2" "$STDIN_OUTPUT"
 # Lower PLUGIN_PRIORITY runs first, regardless of alphabetical order.
 grep -q "Order: greedy tail_end" "$STDIN_OUTPUT"
 
+# The Corepack yarn shim asks on stdin before fetching the pinned release, and
+# writes that prompt to stderr where the plugin discards it, so the run blocked
+# forever with no output. The plugin must disable the prompt. This stand-in
+# fails fast instead of blocking: a test that reproduced the real hang would
+# hang the suite rather than fail it.
+cat >"$TMP_DIR/bin/yarn" <<'EOF'
+#!/bin/bash
+if [ "${COREPACK_ENABLE_DOWNLOAD_PROMPT:-1}" != "0" ]; then
+    echo "! Corepack is about to download https://repo.yarnpkg.com/4.18.0/yarn.js" >&2
+    exit 1
+fi
+
+echo "4.12.0"
+EOF
+
+cat >"$TMP_DIR/bin/corepack" <<'EOF'
+#!/bin/bash
+echo "Preparing yarn@stable for immediate activation..."
+EOF
+
+chmod +x "$TMP_DIR/bin/yarn" "$TMP_DIR/bin/corepack"
+
+YARN_OUTPUT="$TMP_DIR/yarn-output.txt"
+set +e
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" yarn >"$YARN_OUTPUT" 2>&1
+YARN_EXIT_CODE=$?
+set -e
+
+if [ "$YARN_EXIT_CODE" -ne 0 ]; then
+    echo "Expected the yarn plugin to succeed against a Corepack-style shim"
+    cat "$YARN_OUTPUT"
+    exit 1
+fi
+
+if ! grep -q "Detected version 4.x" "$YARN_OUTPUT"; then
+    echo "Yarn version probe did not disable the Corepack download prompt"
+    cat "$YARN_OUTPUT"
+    exit 1
+fi
+
+grep -q "Yarn update completed" "$YARN_OUTPUT"
+
 echo "All regression checks passed."
