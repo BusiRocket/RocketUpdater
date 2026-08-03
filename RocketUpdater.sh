@@ -64,20 +64,27 @@ request_sudo_access() {
     echo_separator
 }
 
-# A full run outlasts sudo's timestamp (five minutes on macOS), so refresh it
+# A full run outlasts sudo's timestamp (five minutes by default), so refresh it
 # until the script exits. Without this, the steps that need root run last and
-# would find the grant already expired.
+# find the grant already expired, reporting "sudo: a password is required".
+#
+# Refresh with `sudo -n -v`, which sudo(8) documents as extending the timeout
+# without running a command. An earlier version ran `sudo -n true` instead and
+# the ticket still expired mid-run.
 start_sudo_keepalive() {
     while true; do
         sleep 60
         kill -0 "$$" 2>/dev/null || exit 0
-        sudo -n true 2>/dev/null || exit 0
+        sudo -n -v 2>/dev/null || exit 0
     done &
     SUDO_KEEPALIVE_PID=$!
 }
 
 stop_sudo_keepalive() {
     [ -n "$SUDO_KEEPALIVE_PID" ] || return 0
+    # Kill the sleep it is parked in as well; killing the subshell alone leaves
+    # that child orphaned for up to a minute after the run ends.
+    pkill -P "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
     kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
     SUDO_KEEPALIVE_PID=""
 }
