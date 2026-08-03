@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$SCRIPT_DIR/lib/bash_colors.sh"
 
+ROCKETUPDATER_VERSION="1.0.0"
+
 # Track plugin results for summary (bash 3.2 compatible)
 TOTAL_PLUGINS=0
 SUCCESSFUL_PLUGINS=0
@@ -14,7 +16,7 @@ FAILED_PLUGINS=0
 SKIPPED_PLUGINS=0
 FAILED_PLUGIN_LIST=""
 
-echo_blue '🚀 RocketUpdater - Starting System Update'
+echo_blue "🚀 RocketUpdater v$ROCKETUPDATER_VERSION - Starting System Update"
 echo_separator
 
 # Function to check if necessary commands exist
