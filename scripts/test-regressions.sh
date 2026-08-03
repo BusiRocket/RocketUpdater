@@ -286,6 +286,44 @@ if ! grep -q "unprivileged pear upgrade completed" "$PEAR_FALLBACK_OUTPUT"; then
     exit 1
 fi
 
+# The reason the privileged attempt failed must reach the log. Without it,
+# "retrying without sudo" looks the same whether sudo was refused, the ticket
+# expired, or the command itself errored, and the run cannot be diagnosed.
+if ! grep -q "sudo: unable to execute the requested command" "$PEAR_FALLBACK_OUTPUT"; then
+    echo "The privileged failure was reported without saying why"
+    cat "$PEAR_FALLBACK_OUTPUT"
+    exit 1
+fi
+
 grep -q "PEAR/PECL update completed" "$PEAR_FALLBACK_OUTPUT"
+
+# Case 3: the upgrade genuinely fails. The plugin must report failure so the
+# summary cannot claim success while "ERROR: commit failed" is on screen.
+cat >"$TMP_DIR/bin/pear" <<'EOF'
+#!/bin/bash
+if [ "$1" = "upgrade" ]; then
+    echo "ERROR: commit failed"
+    exit 1
+fi
+
+echo "unprivileged pear $1 completed"
+EOF
+
+chmod +x "$TMP_DIR/bin/pear"
+
+PEAR_FAIL_OUTPUT="$TMP_DIR/pear-fail.txt"
+set +e
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" pear </dev/null >"$PEAR_FAIL_OUTPUT" 2>&1
+PEAR_FAIL_EXIT_CODE=$?
+set -e
+
+if [ "$PEAR_FAIL_EXIT_CODE" -eq 0 ]; then
+    echo "A failed pear upgrade was reported as a successful run"
+    cat "$PEAR_FAIL_OUTPUT"
+    exit 1
+fi
+
+grep -q "PEAR/PECL update finished with failed upgrades" "$PEAR_FAIL_OUTPUT"
+grep -q "Command failed: update_pear" "$PEAR_FAIL_OUTPUT"
 
 echo "All regression checks passed."

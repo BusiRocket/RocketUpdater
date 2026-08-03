@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being skipped: without a grant, and also when the privileged
   command itself fails for any reason.
 
+### Fixed
+
+- A failed `pear`/`pecl` upgrade is reported as a failure. The plugin returned
+  success unconditionally, so the summary could claim every plugin succeeded
+  with `ERROR: commit failed` on screen.
+- When a privileged attempt fails, the reason is printed. It was discarded, so
+  "retrying without sudo" read the same whether sudo was refused, the ticket had
+  expired, or the command itself errored.
+
 ## [1.0.0] - 2026-08-03
 
 First tagged release. The tool has been in daily use for some time; this entry
