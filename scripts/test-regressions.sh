@@ -119,8 +119,11 @@ cp -R "$ROOT_DIR/lib" "$FAKE_ROOT/"
 cat >"$FAKE_ROOT/plugins/greedy.sh" <<'EOF'
 PLUGIN_PRIORITY=10
 update_greedy() {
-    cat >/dev/null
-    echo "greedy plugin ran"
+    if read -r line; then
+        echo "greedy plugin read: $line"
+    else
+        echo "greedy plugin saw EOF"
+    fi
 }
 EOF
 
@@ -131,9 +134,11 @@ update_tail_end() {
 }
 EOF
 
+# Feed the run real data on stdin: a plugin must see EOF regardless, both so it
+# cannot consume the plugin list and so it cannot block on a prompt.
 STDIN_OUTPUT="$TMP_DIR/stdin-output.txt"
 set +e
-"$FAKE_ROOT/RocketUpdater.sh" >"$STDIN_OUTPUT" 2>&1
+printf 'sentinel\n' | "$FAKE_ROOT/RocketUpdater.sh" >"$STDIN_OUTPUT" 2>&1
 STDIN_EXIT_CODE=$?
 set -e
 
@@ -149,7 +154,13 @@ if ! grep -q "tail_end plugin ran" "$STDIN_OUTPUT"; then
     exit 1
 fi
 
-grep -q "greedy plugin ran" "$STDIN_OUTPUT"
+if grep -q "greedy plugin read: sentinel" "$STDIN_OUTPUT"; then
+    echo "A plugin was handed the run's stdin and could block on a prompt"
+    cat "$STDIN_OUTPUT"
+    exit 1
+fi
+
+grep -q "greedy plugin saw EOF" "$STDIN_OUTPUT"
 grep -q "Successful: 2" "$STDIN_OUTPUT"
 
 # Lower PLUGIN_PRIORITY runs first, regardless of alphabetical order.
@@ -196,5 +207,42 @@ if ! grep -q "Detected version 4.x" "$YARN_OUTPUT"; then
 fi
 
 grep -q "Yarn update completed" "$YARN_OUTPUT"
+
+# With no stdin there is nothing to type a password into, so the pear plugin
+# must detect that sudo has no cached credentials and skip the privileged steps
+# with an actionable message instead of failing obscurely.
+cat >"$TMP_DIR/bin/sudo" <<'EOF'
+#!/bin/bash
+echo "sudo: a password is required" >&2
+exit 1
+EOF
+
+cat >"$TMP_DIR/bin/pear" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+
+cat >"$TMP_DIR/bin/pecl" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+
+chmod +x "$TMP_DIR/bin/sudo" "$TMP_DIR/bin/pear" "$TMP_DIR/bin/pecl"
+
+PEAR_OUTPUT="$TMP_DIR/pear-output.txt"
+set +e
+PATH="$TMP_DIR/bin:$PATH" "$ROOT_DIR/RocketUpdater.sh" pear >"$PEAR_OUTPUT" 2>&1
+PEAR_EXIT_CODE=$?
+set -e
+
+if [ "$PEAR_EXIT_CODE" -ne 0 ]; then
+    echo "Expected the pear plugin to succeed without cached sudo credentials"
+    cat "$PEAR_OUTPUT"
+    exit 1
+fi
+
+grep -q "PEAR upgrades need root" "$PEAR_OUTPUT"
+grep -q "PECL upgrades need root" "$PEAR_OUTPUT"
+grep -q "PEAR/PECL update completed" "$PEAR_OUTPUT"
 
 echo "All regression checks passed."

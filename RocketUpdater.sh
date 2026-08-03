@@ -84,7 +84,11 @@ run_plugin() {
 
         echo_cyan "📦 Updating $plugin_name..."
 
-        if try_plugin "update_$plugin_name"; then
+        # Plugins run unattended, so give them no stdin to block on. A tool that
+        # asks a question gets EOF and fails with it on the record, instead of
+        # stalling the whole run on a prompt nobody can see (the Corepack yarn
+        # shim wrote its download prompt to a discarded stderr and waited).
+        if try_plugin "update_$plugin_name" </dev/null; then
             SUCCESSFUL_PLUGINS=$((SUCCESSFUL_PLUGINS + 1))
         else
             FAILED_PLUGINS=$((FAILED_PLUGINS + 1))
