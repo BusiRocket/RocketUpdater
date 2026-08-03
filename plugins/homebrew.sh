@@ -3,6 +3,8 @@
 PLUGIN_NAME="Homebrew"
 PLUGIN_VERSION="1.0.1"
 DISABLE=${DISABLE:-false} # To disable, set DISABLE=true
+# Bootstrap: the other plugins update binaries Homebrew installs, so it goes first.
+PLUGIN_PRIORITY=10
 
 check_homebrew() {
     command_exists brew

@@ -43,6 +43,30 @@
 
 Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments.
 
+## Plugin order
+
+Plugins run in priority order, in the style of SysV init sequence numbers:
+lower runs first, and the gaps leave room to insert a plugin without
+renumbering the rest. A plugin declares its position with `PLUGIN_PRIORITY`:
+
+```sh
+PLUGIN_PRIORITY=10
+```
+
+| Band     | Purpose                                                        | Plugins                    |
+| -------- | -------------------------------------------------------------- | -------------------------- |
+| 10-29    | Bootstrap: package managers the other plugins install through   | `homebrew`                 |
+| 30-69    | Regular updaters (the default band)                             | everything else            |
+| 70-99    | Cleanup, after everything has finished downloading              | `docker`, `devcaches`, `mole` |
+| 100+     | System updates that may force a restart                         | `osx`                      |
+
+A plugin that does not care about its position omits `PLUGIN_PRIORITY` and gets
+the default of `50`. Plugins sharing a priority run alphabetically, so the order
+is always deterministic. The resolved order is printed at the start of a run.
+
+Cleanup belongs after the updaters: pruning caches first only frees space that
+`brew`, `npm`, and `yarn` refill minutes later.
+
 ## Formatting
 
 Shell scripts are formatted with [shfmt](https://github.com/patrickvane/shfmt). Install it (e.g. `brew install shfmt`), then:

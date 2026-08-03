@@ -3,6 +3,8 @@
 PLUGIN_NAME="OSX"
 PLUGIN_VERSION="1.1.0"
 DISABLE=${DISABLE:-false}
+# Last: softwareupdate can require a restart, which would strand later plugins.
+PLUGIN_PRIORITY=100
 
 check_osx() {
     [[ $OSTYPE == "darwin"* ]]

@@ -3,6 +3,8 @@
 PLUGIN_NAME="DevCaches"
 PLUGIN_VERSION="1.0.0"
 DISABLE=${DISABLE:-false}
+# Cleanup: npm/yarn/pnpm must have finished downloading before pruning.
+PLUGIN_PRIORITY=80
 
 # Developer-tool caches not covered by other plugins or by Mole:
 # uv (Python), pnpm content-addressable store, pip. npm/yarn/composer

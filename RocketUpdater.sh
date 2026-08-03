@@ -22,14 +22,54 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Plugin execution order, in the style of SysV init sequence numbers: lower
+# runs first, and the gaps leave room to insert a plugin without renumbering.
+#
+#   10-29   bootstrap: package managers the other plugins install through
+#   30-69   regular updaters (the default band)
+#   70-99   cleanup, which must run after everything has finished downloading
+#   100+    system updates that may force a restart
+#
+# A plugin that does not care about its position omits PLUGIN_PRIORITY.
+DEFAULT_PLUGIN_PRIORITY=50
+
+# Read a plugin's declared priority without polluting the caller's scope: the
+# subshell discards the function definitions, which run_plugin sources anyway.
+plugin_priority() {
+    local priority
+    priority=$(
+        PLUGIN_PRIORITY=$DEFAULT_PLUGIN_PRIORITY
+        # shellcheck source=/dev/null
+        source "$1" >/dev/null 2>&1
+        printf '%s' "$PLUGIN_PRIORITY"
+    )
+
+    case $priority in
+    '' | *[!0-9]*) priority=$DEFAULT_PLUGIN_PRIORITY ;;
+    esac
+
+    printf '%s' "$priority"
+}
+
+# Emit plugin names ordered by priority, alphabetically within a priority so
+# the order stays deterministic.
+sorted_plugin_names() {
+    local plugin_file
+    for plugin_file in "$SCRIPT_DIR"/plugins/*.sh; do
+        printf '%03d %s\n' "$(plugin_priority "$plugin_file")" "$(basename "$plugin_file" .sh)"
+    done | sort | awk '{print $2}'
+}
+
 # Function to run a specific plugin
 run_plugin() {
     local plugin=$1
     local plugin_file="$SCRIPT_DIR/plugins/$plugin.sh"
 
     if [ -f "$plugin_file" ]; then
-        # Reset DISABLE for each plugin
+        # Reset per-plugin declarations so one plugin does not inherit another's
         unset DISABLE
+        unset PLUGIN_PRIORITY
+        # shellcheck source=/dev/null
         source "$plugin_file"
 
         if [ "$DISABLE" = "true" ]; then
@@ -94,9 +134,17 @@ load_and_update_plugins() {
         echo_blue '📂 Loading Plugins...'
         echo_separator
 
-        for plugin in "$SCRIPT_DIR"/plugins/*.sh; do
-            run_plugin "$(basename "$plugin" .sh)"
-        done
+        local plugin_order
+        plugin_order=$(sorted_plugin_names)
+
+        echo_cyan "🔢 Order: $(echo "$plugin_order" | tr '\n' ' ')"
+        echo_separator
+
+        local plugin
+        while read -r plugin; do
+            [ -n "$plugin" ] || continue
+            run_plugin "$plugin"
+        done <<<"$plugin_order"
     else
         echo_red '❌ No plugins found. Please ensure the plugins directory exists and contains plugins.'
     fi
