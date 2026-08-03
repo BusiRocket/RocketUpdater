@@ -67,14 +67,16 @@ is always deterministic. The resolved order is printed at the start of a run.
 Cleanup belongs after the updaters: pruning caches first only frees space that
 `brew`, `npm`, and `yarn` refill minutes later.
 
-## Formatting
+## Formatting and linting
 
-Shell scripts are formatted with [shfmt](https://github.com/patrickvane/shfmt). Install it (e.g. `brew install shfmt`), then:
+Shell scripts are formatted with [shfmt](https://github.com/patrickvane/shfmt) and linted with [shellcheck](https://www.shellcheck.net/). Install them (`brew install shfmt shellcheck`), then:
 
 - **Format all scripts:** `./scripts/format.sh`
-- **Check only (CI):** `./scripts/format.sh --check`
+- **Check formatting only (CI):** `./scripts/format.sh --check`
+- **Lint all scripts:** `./scripts/lint.sh` (defaults to the strictest `style` severity; pass `warning` or `error` to relax it)
+- **Regression tests:** `./scripts/test-regressions.sh`
 
-Indent and style are defined in [.editorconfig](.editorconfig).
+Indent and style are defined in [.editorconfig](.editorconfig); project-wide shellcheck exclusions in [.shellcheckrc](.shellcheckrc).
 
 ## Contributing
 

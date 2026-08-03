@@ -47,8 +47,7 @@ update_omzsh() {
 
                 if ! (cd "$plugin_dir" && git diff --quiet --ignore-submodules HEAD -- 2>/dev/null) || [ -n "$(cd "$plugin_dir" && git ls-files --others --exclude-standard 2>/dev/null)" ]; then
                     echo_info "Stashing local changes for $plugin_name..."
-                    plugin_stash_output=$(cd "$plugin_dir" && git stash push --include-untracked -m "RocketUpdater auto-stash" 2>&1)
-                    if [ $? -ne 0 ]; then
+                    if ! plugin_stash_output=$(cd "$plugin_dir" && git stash push --include-untracked -m "RocketUpdater auto-stash" 2>&1); then
                         has_failures=1
                         echo_warning "Failed to stash local changes for $plugin_name"
                         continue
@@ -93,8 +92,7 @@ update_omzsh() {
 
                 if ! (cd "$theme_dir" && git diff --quiet --ignore-submodules HEAD -- 2>/dev/null) || [ -n "$(cd "$theme_dir" && git ls-files --others --exclude-standard 2>/dev/null)" ]; then
                     echo_info "Stashing local changes for $theme_name..."
-                    theme_stash_output=$(cd "$theme_dir" && git stash push --include-untracked -m "RocketUpdater auto-stash" 2>&1)
-                    if [ $? -ne 0 ]; then
+                    if ! theme_stash_output=$(cd "$theme_dir" && git stash push --include-untracked -m "RocketUpdater auto-stash" 2>&1); then
                         has_failures=1
                         echo_warning "Failed to stash local changes for $theme_name"
                         continue

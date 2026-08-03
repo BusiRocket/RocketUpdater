@@ -14,7 +14,7 @@ is_homebrew_composer() {
     command_exists brew || return 1
     local composer_path
     composer_path=$(command -v composer)
-    [[ "$composer_path" == "$(brew --prefix)"/* ]]
+    [[ $composer_path == "$(brew --prefix)"/* ]]
 }
 
 update_composer() {

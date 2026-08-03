@@ -1,0 +1,9 @@
+# Plugins are declarative: PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_PRIORITY and
+# DISABLE are set for RocketUpdater.sh to read after sourcing the file, and the
+# color constants in lib/bash_colors.sh are a palette plugins draw from. Every
+# one of them looks unused to a per-file analysis.
+disable=SC2034
+
+# Resolve `# shellcheck source=` directives relative to the script holding them,
+# not to the working directory shellcheck happens to run from.
+source-path=SCRIPTDIR

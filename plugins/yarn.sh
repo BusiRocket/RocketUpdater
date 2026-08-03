@@ -29,17 +29,17 @@ update_yarn() {
 
     if [ "$yarn_major_version" = "1" ]; then
         echo_info "Yarn Classic: Updating via npm..."
-        npm install -g yarn@latest --force 2>&1 \
-            || echo_warning "Yarn update via npm failed"
+        npm install -g yarn@latest --force 2>&1 ||
+            echo_warning "Yarn update via npm failed"
     else
         if check_corepack; then
             echo_info "Yarn Berry: Updating global yarn via corepack..."
-            corepack prepare yarn@stable --activate 2>&1 \
-                || echo_warning "corepack prepare yarn@stable failed"
+            corepack prepare yarn@stable --activate 2>&1 ||
+                echo_warning "corepack prepare yarn@stable failed"
         else
             echo_info "Yarn Berry: corepack not found — falling back to npm..."
-            npm install -g yarn@latest --force 2>&1 \
-                || echo_warning "Yarn update via npm failed"
+            npm install -g yarn@latest --force 2>&1 ||
+                echo_warning "Yarn update via npm failed"
         fi
     fi
 
@@ -56,8 +56,8 @@ update_yarn() {
 
     if [ "$yarn_major_version" = "1" ]; then
         echo_info "Yarn: Checking global packages..."
-        (cd "$HOME" && yarn global upgrade) 2>&1 \
-            || echo_skip "No global packages to update"
+        (cd "$HOME" && yarn global upgrade) 2>&1 ||
+            echo_skip "No global packages to update"
     fi
 
     echo_success "Yarn update completed"
