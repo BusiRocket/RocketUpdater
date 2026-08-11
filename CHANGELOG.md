@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When a privileged attempt fails, the reason is printed. It was discarded, so
   "retrying without sudo" read the same whether sudo was refused, the ticket had
   expired, or the command itself errored.
+- The `gcloud` plugin repairs the `gcloud-cli` cask after Homebrew reverts its
+  upgrade. The cask's postflight builds a Python virtualenv by pip-installing
+  wheels from github.com; under the `brew` process that pip fails DNS resolution
+  and the upgrade rolls back, leaving the SDK files at the new version but the
+  `bin` wrappers unlinked so `gcloud` disappears from `PATH`. The plugin now
+  runs after Homebrew and, idempotently, relinks the wrappers and rebuilds the
+  optional virtualenv, both of which succeed outside the `brew` environment.
 
 ## [1.0.0] - 2026-08-03
 
