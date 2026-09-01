@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.busirocket.rocketupdater</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
+    <string>/Users/cristiandeluxe/p/RocketUpdater/RocketUpdater.sh</string>
+    <string>--scheduled</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>15</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+  <key>ThrottleInterval</key>
+  <integer>3600</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>LowPriorityBackgroundIO</key>
+  <true/>
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>Umask</key>
+  <integer>63</integer>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/cristiandeluxe/p/RocketUpdater</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/cristiandeluxe</string>
+    <key>PATH</key>
+    <string>/Users/cristiandeluxe/.cargo/bin:/Users/cristiandeluxe/go/bin:/Users/cristiandeluxe/.local/bin:/Users/cristiandeluxe/Library/pnpm:/Users/cristiandeluxe/.platformio/penv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>NO_COLOR</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_ASK</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_AUTO_UPDATE</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_ENV_HINTS</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_ANALYTICS</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_COLOR</key>
+    <string>1</string>
+    <key>HOMEBREW_NO_UPGRADE_QUIT_CASKS</key>
+    <string>1</string>
+    <key>HOMEBREW_CURL_RETRIES</key>
+    <string>5</string>
+    <key>COREPACK_ENABLE_DOWNLOAD_PROMPT</key>
+    <string>0</string>
+    <key>GIT_TERMINAL_PROMPT</key>
+    <string>0</string>
+    <key>GIT_ASKPASS</key>
+    <string>/usr/bin/true</string>
+    <key>NONINTERACTIVE</key>
+    <string>1</string>
+    <key>ROCKETUPDATER_LAUNCHD</key>
+    <string>1</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/cristiandeluxe/Library/Logs/RocketUpdater/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/cristiandeluxe/Library/Logs/RocketUpdater/launchd.err.log</string>
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+</dict>
+</plist>

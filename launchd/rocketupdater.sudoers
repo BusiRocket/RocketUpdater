@@ -1,0 +1,4 @@
+# RocketUpdater may download recommended updates but may not install or restart.
+Cmnd_Alias ROCKET_SWUPDATE = /usr/sbin/softwareupdate -d -r
+
+cristiandeluxe ALL=(root) NOPASSWD: ROCKET_SWUPDATE
