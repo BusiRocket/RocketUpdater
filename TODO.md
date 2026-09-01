@@ -23,6 +23,32 @@
   `tests/plugins/homebrew.sh` proves a failed cask is attempted once, the
   remaining casks still run, and the plugin returns 1.
 
+## Scheduling activation (blocked on privileged writes)
+
+- [!] Install `/etc/sudoers.d/rocketupdater` from `launchd/rocketupdater.sudoers`
+      as `root:wheel 0440`. Blocked: needs a root password, which an agent must
+      not type. Source already validated with `visudo -c -f`. Smallest next
+      step: `sudo install -m 440 -o root -g wheel launchd/rocketupdater.sudoers
+      /etc/sudoers.d/rocketupdater && sudo visudo -c`, then prove
+      `sudo -n -l /usr/sbin/softwareupdate -d -r` is allowed and
+      `sudo -n -l /usr/sbin/softwareupdate -i -a` is denied.
+- [!] Install `/etc/newsyslog.d/rocketupdater.conf` from
+      `launchd/rocketupdater.newsyslog.conf` as `root:wheel 0644`. Blocked on the
+      same root password. `newsyslog -nvv` also needs root to dry-run. Smallest
+      next step: `sudo install -m 644 -o root -g wheel
+      launchd/rocketupdater.newsyslog.conf /etc/newsyslog.d/rocketupdater.conf`,
+      then `sudo newsyslog -nvv | grep RocketUpdater`.
+- [~] LaunchAgent installed and bootstrapped in **preflight-only** mode on
+      2026-09-01; the Task 3.4 gate passed (exit 0; the run's only events are
+      run_start, preflight ready, run_end success; logs 0600; no ANSI; no
+      surviving child). It stays preflight-only on purpose: the `osx` plugin
+      cannot get its download grant until the sudoers rule above exists, so a
+      canary now would fail by construction. Smallest next step, after the
+      sudoers install: remove `--preflight-only` from
+      `~/Library/LaunchAgents/com.busirocket.rocketupdater.plist`, `bootout` then
+      `bootstrap` again (kickstart does not reload a changed plist), and run the
+      supervised canary of Task 3.5 with package-managed applications closed.
+
 ## Manual disk-reclamation decisions
 
 - [ ] Shadow zsh formulae — decision: confirm .zshrc sources the Oh My Zsh

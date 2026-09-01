@@ -99,6 +99,50 @@ Reports belong after the updaters: cache sizes measured first would be stale
 the moment `brew`, `npm`, and `yarn` finish downloading. No plugin deletes
 anything; the three guarded cleanup operations run only through `--clean`.
 
+## Scheduling under launchd
+
+The versioned sources live in [launchd/](launchd/) and are never installed
+automatically:
+
+| Source                                   | Installed as                              | Owner/mode        |
+| ---------------------------------------- | ----------------------------------------- | ----------------- |
+| `com.busirocket.rocketupdater.plist`     | `~/Library/LaunchAgents/<same name>`      | user, `0644`      |
+| `rocketupdater.sudoers`                  | `/etc/sudoers.d/rocketupdater`            | `root:wheel 0440` |
+| `rocketupdater.newsyslog.conf`           | `/etc/newsyslog.d/rocketupdater.conf`     | `root:wheel 0644` |
+
+Validate the sources before installing anything:
+
+```sh
+plutil -lint launchd/com.busirocket.rocketupdater.plist
+/usr/sbin/visudo -c -f launchd/rocketupdater.sudoers
+./scripts/test-regressions.sh
+```
+
+Install the agent in preflight-only mode first, so the first scheduled wake
+proves the environment without running a single update:
+
+```sh
+install -d -m 700 ~/Library/Logs/RocketUpdater ~/Library/Caches/RocketUpdater
+install -m 644 launchd/com.busirocket.rocketupdater.plist \
+    ~/Library/LaunchAgents/com.busirocket.rocketupdater.plist
+/usr/libexec/PlistBuddy -c 'Add :ProgramArguments: string --preflight-only' \
+    ~/Library/LaunchAgents/com.busirocket.rocketupdater.plist
+launchctl bootstrap "gui/$UID" ~/Library/LaunchAgents/com.busirocket.rocketupdater.plist
+launchctl kickstart -k "gui/$UID/com.busirocket.rocketupdater"
+```
+
+The gate passes when `launchctl print` reports `last exit code = 0`, the run's
+only events are `run_start`, `preflight`, and `run_end` with `status=success`,
+the logs are `0600`, and no ANSI escape reaches the captured output. Only then
+remove `--preflight-only` and `bootout`/`bootstrap` again — `kickstart` does not
+reload a changed plist.
+
+The sudo allowlist is the sole unattended privilege. After installing it,
+`sudo -n -l /usr/sbin/softwareupdate -d -r` must be allowed while
+`sudo -n -l /usr/sbin/softwareupdate -i -a` must be denied. Until it is
+installed, the `osx` plugin fails under `--scheduled` because it cannot obtain
+the download grant.
+
 ## Shell plugin sources
 
 The Oh My Zsh custom repositories under `~/.oh-my-zsh/custom` are the canonical

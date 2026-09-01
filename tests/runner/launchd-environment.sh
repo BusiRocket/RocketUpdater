@@ -5,7 +5,35 @@ set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/tests/runner/test-support.bash"
 
-LAUNCHD_PATH="/Users/cristiandeluxe/.cargo/bin:/Users/cristiandeluxe/go/bin:/Users/cristiandeluxe/.local/bin:/Users/cristiandeluxe/Library/pnpm:/Users/cristiandeluxe/.platformio/penv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+PLIST_SOURCE="$ROOT_DIR/launchd/com.busirocket.rocketupdater.plist"
+
+if ! plutil -lint "$PLIST_SOURCE" >/dev/null; then
+    echo "RED launchd environment: the versioned LaunchAgent plist is not valid"
+    exit 1
+fi
+
+# The PATH under test is the one launchd will actually use, read from the
+# versioned plist, so the plist and this contract cannot drift apart.
+LAUNCHD_PATH=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:PATH' "$PLIST_SOURCE")
+
+# Homebrew 6.0.20 documents this variable as the environment equivalent of
+# --no-quit; the scheduled run must never quit a cask's running application.
+if [ "$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:HOMEBREW_NO_UPGRADE_QUIT_CASKS' "$PLIST_SOURCE")" != 1 ] ||
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:ROCKETUPDATER_LAUNCHD' "$PLIST_SOURCE")" != 1 ] ||
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:NONINTERACTIVE' "$PLIST_SOURCE")" != 1 ]; then
+    echo "RED launchd environment: the plist does not pin the noninteractive Homebrew contract"
+    exit 1
+fi
+
+# The scheduled invocation must stay download-only and never name a mode that
+# can delete.
+if ! /usr/libexec/PlistBuddy -c 'Print :ProgramArguments' "$PLIST_SOURCE" |
+    grep -q -- '--scheduled' ||
+    /usr/libexec/PlistBuddy -c 'Print :ProgramArguments' "$PLIST_SOURCE" |
+    grep -q -- '--clean'; then
+    echo "RED launchd environment: the plist does not invoke exactly the scheduled mode"
+    exit 1
+fi
 # shellcheck disable=SC2016 # This literal shell is the launchd environment contract.
 env -i HOME=/Users/cristiandeluxe PATH="$LAUNCHD_PATH" /bin/bash -c '
 for command_name in brew uv docker deno helm pip3 bun go gopls rustup cargo timeout softwareupdate lockf; do
