@@ -141,9 +141,23 @@ update_pear() {
     # Step 4: Upgrade PECL extensions (after PEAR is fully updated)
     if [ "$has_pecl" = true ]; then
         echo_info "PECL: Upgrading installed extensions..."
-        # Get list of installed PECL packages and upgrade each with --force
-        local pecl_packages
-        pecl_packages=$(pecl list 2>/dev/null | tail -n +4 | awk '{print $1}' | grep -v "^$")
+        # Get list of installed PECL packages and upgrade each with --force.
+        # A broken PEAR install makes `pecl list` emit a PHP fatal error, and
+        # parsing that stack trace as a package list produced upgrade attempts
+        # for "Warning:", "#0" and "thrown". Require a successful listing, then
+        # keep only names that can actually be package names.
+        local pecl_list_output
+        local pecl_packages=""
+        if ! pecl_list_output=$(pecl list 2>/dev/null); then
+            echo_error "PECL: Could not list installed extensions"
+            has_failures=true
+            pecl_list_output=""
+        fi
+
+        if [ -n "$pecl_list_output" ]; then
+            pecl_packages=$(printf '%s\n' "$pecl_list_output" | tail -n +4 |
+                awk '{print $1}' | grep -E '^[A-Za-z][A-Za-z0-9_-]*$' || true)
+        fi
 
         if [ -n "$pecl_packages" ]; then
             for pkg in $pecl_packages; do
