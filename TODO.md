@@ -85,10 +85,17 @@
 
 ## Findings from the first full run (2026-09-01, 27 plugins, 5 minutes)
 
-Result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
+First result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
 `ready`, so the earlier `degraded` canary was caused by this session's own test
 load, not a permanent condition. Zero integrity events: the global npm tree
 survived upgrades of npm, jscpd, pnpm and `@playwright/mcp`.
+
+**After the fixes below, re-run clean:** `run_end status=success`,
+`total=27 successful=25 failed=0 skipped=2`, 215 seconds, with `brewhealth`
+(16s), `pear` (14s) and `mole` (84s) all succeeding and the summary reading
+"No plugin failures." The two skips are `conda` (not installed) and `docker`
+(daemon down), both status 20 as designed. Still zero integrity events across
+every run so far.
 
 - [x] PEAR was broken on this machine, independently of RocketUpdater: every
       `pear`/`pecl` command died with
