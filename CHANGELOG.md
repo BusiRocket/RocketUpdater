@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NPX plugin is retired with its `_npx` size folded into the npm report.
 - A missing tool now skips a plugin with status 20, and core update failures
   return nonzero instead of hiding behind warnings.
+- The `pear` plugin no longer parses a PHP stack trace as the PECL package
+  list. A broken PEAR install makes `pecl list` die with a fatal error, and the
+  old code turned its stack-trace lines into package names, attempting eight
+  bogus upgrades of `Warning:`, `Fatal`, `Stack`, `#0`-`#3` and `thrown`. The
+  listing must now succeed, and only names matching a package-name pattern are
+  upgraded.
 - `report_mole` raises Mole's own `MOLE_TIMEOUT_DISK_VERIFY_SEC` size-check
   budget to 120 seconds and treats a dry run that Mole itself abandons as an
   incomplete measurement (status 20) rather than a failure, so an informational

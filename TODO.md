@@ -83,6 +83,41 @@
       10.14 GB / 423 / 4 when it was cancelled, confirming the cancelled run
       under-reported) and the plugin exits 0.
 
+## Findings from the first full run (2026-09-01, 27 plugins, 5 minutes)
+
+Result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
+`ready`, so the earlier `degraded` canary was caused by this session's own test
+load, not a permanent condition. Zero integrity events: the global npm tree
+survived upgrades of npm, jscpd, pnpm and `@playwright/mcp`.
+
+- [ ] PEAR is broken on this machine, independently of RocketUpdater. Every
+      `pear`/`pecl` command dies with
+      `Failed opening required 'Console/Getopt.php'` from
+      `/opt/homebrew/Cellar/php/8.5.10/share/php/pear/System.php:20`, so the
+      Console_Getopt package is missing from the Homebrew PHP 8.5.10 PEAR tree.
+      The plugin now reports this honestly instead of hiding it. Smallest next
+      step: decide whether PEAR/PECL is still wanted on this machine at all; if
+      yes, reinstall the PEAR bootstrap for the current PHP, if no, disable the
+      plugin with `DISABLE=true` rather than leaving a permanent red run.
+- [ ] `brewhealth` fails every run because `brew doctor` always has something to
+      say on a real machine. Current findings: deprecated formulae `terraform`
+      and `goplaces`, and unlinked kegs `goplaces`, `pillow`, `pydantic`. That
+      is per the plan's spec ("doctor warnings return 1"), and the findings are
+      genuine, but a health report that is permanently red trains the reader to
+      ignore failures - the same pattern that was corrected for Mole. Smallest
+      next step: either clear the findings (`brew link` the three kegs, replace
+      the two deprecated formulae) or split the plugin so `brew missing` stays a
+      failure while `brew doctor` output is reported without failing the run.
+- [ ] `brew upgrade` deletes the superseded Cellar version of each package it
+      upgrades (observed: `Removing: /opt/homebrew/Cellar/camsnap/0.4.1`). This
+      is Homebrew's own post-install cleanup, not a RocketUpdater command, so
+      "scheduled deletion is exactly zero" is true of every command this
+      repository issues but not of Homebrew's internal behaviour while
+      upgrading. Setting `HOMEBREW_NO_INSTALL_CLEANUP=1` would honour the
+      constraint literally at the cost of unbounded Cellar growth, which no
+      guard currently reclaims. Decide deliberately rather than by omission, and
+      record the choice here.
+
 ## Manual disk-reclamation decisions
 
 - [ ] Shadow zsh formulae — decision: confirm .zshrc sources the Oh My Zsh
