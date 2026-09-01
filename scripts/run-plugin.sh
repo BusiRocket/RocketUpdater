@@ -51,6 +51,8 @@ source "$ROOT_DIR/lib/log_event.sh" || exit 78
 source "$ROOT_DIR/lib/snapshot_global_npm_packages.sh" || exit 78
 # shellcheck source=../lib/compare_global_npm_snapshots.sh
 source "$ROOT_DIR/lib/compare_global_npm_snapshots.sh" || exit 78
+# shellcheck source=../lib/list_sparkle_obsolete_candidates.sh
+source "$ROOT_DIR/lib/list_sparkle_obsolete_candidates.sh" || exit 78
 # shellcheck source=/dev/null
 source "$PLUGIN_FILE" || exit $?
 

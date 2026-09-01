@@ -5,6 +5,23 @@ set +e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=../lib/print_message.sh
+source "$ROOT_DIR/lib/print_message.sh" || exit 78
+# shellcheck source=../lib/echo_info.sh
+source "$ROOT_DIR/lib/echo_info.sh" || exit 78
+# shellcheck source=../lib/echo_success.sh
+source "$ROOT_DIR/lib/echo_success.sh" || exit 78
+# shellcheck source=../lib/echo_warning.sh
+source "$ROOT_DIR/lib/echo_warning.sh" || exit 78
+# shellcheck source=../lib/echo_error.sh
+source "$ROOT_DIR/lib/echo_error.sh" || exit 78
+# shellcheck source=../lib/echo_skip.sh
+source "$ROOT_DIR/lib/echo_skip.sh" || exit 78
+# shellcheck source=../lib/command_exists.sh
+source "$ROOT_DIR/lib/command_exists.sh" || exit 78
+# shellcheck source=../lib/list_sparkle_obsolete_candidates.sh
+source "$ROOT_DIR/lib/list_sparkle_obsolete_candidates.sh" || exit 78
+
 if [ "$#" -ne 1 ] || [ "${ROCKETUPDATER_MODE:-}" != clean ] ||
     [ "${NONINTERACTIVE:-0}" = 1 ] || [ "${ROCKETUPDATER_LAUNCHD:-0}" = 1 ] ||
     [ ! -t 0 ] || [ ! -t 1 ]; then

@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global npm package-tree integrity snapshots around `npm install -g` and the
   Homebrew `node` formula upgrade; damage to any non-target package stops
   further global updates and is logged as a structured integrity event.
+- New verified plugins: `brewhealth`, `gopls`, `helm` (inventory), `msupdate`
+  (inventory), `uvtools`, `sparkledrift` (feed evidence), `sparklecache`
+  (staged-installation report), `cargosources`, `composerbackups`,
+  `yarnmetadata`, `deno`, `platformio`, `bun`, and `whispermodels` — every one
+  update- or report-only, with bounded timeouts and truthful exit statuses.
+- Guarded `--clean sparkle` operation that removes only verified obsolete
+  stopped-app ChatGPT Sparkle staged installations after a typed confirmation
+  and a byte-identical re-enumeration; `PersistentDownloads` stays report-only.
 
 ### Changed
 

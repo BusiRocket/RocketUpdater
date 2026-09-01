@@ -41,7 +41,21 @@
 
 ## Usage
 
-Simply execute the `RocketUpdater.sh` script to begin the update process. The script will guide you through updating and cleaning various tools and environments.
+Execute `./RocketUpdater.sh` to run every plugin in a supervised update pass, or
+`./RocketUpdater.sh <plugin>` to run one plugin. Additional modes:
+
+- `./RocketUpdater.sh --scheduled` — unattended mode for launchd: updates and
+  reports only, never deletes, and never prompts for sudo.
+- `./RocketUpdater.sh --preflight-only` (combinable with `--scheduled`) — runs
+  and reports the fail-closed preflight without executing plugins.
+- `./RocketUpdater.sh --clean <homebrew|npm|sparkle|all>` — supervised cleanup.
+  It requires a real terminal, previews the exact candidates with their
+  allocated KiB, and removes them only after you type the operation name.
+  `all` still previews and confirms each operation separately.
+
+Exit status 0 means no plugin failures; nonzero names every failure. A plugin
+returning 20 means it skipped intentionally, 124 means it timed out, 75 means
+another run holds the lock, and 78 means invalid configuration or preflight.
 
 ## Root access
 
@@ -71,19 +85,19 @@ renumbering the rest. A plugin declares its position with `PLUGIN_PRIORITY`:
 PLUGIN_PRIORITY=10
 ```
 
-| Band     | Purpose                                                        | Plugins                    |
-| -------- | -------------------------------------------------------------- | -------------------------- |
-| 10-29    | Bootstrap: package managers the other plugins install through   | `homebrew`                 |
-| 30-69    | Regular updaters (the default band)                             | everything else            |
-| 70-99    | Cleanup, after everything has finished downloading              | `docker`, `devcaches`, `mole` |
-| 100+     | System updates that may force a restart                         | `osx`                      |
+| Band  | Purpose                                                       | Plugins                                                                                                                       |
+| ----- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 10-29 | Bootstrap: package managers the other plugins install through | `homebrew`, `brewhealth`                                                                                                       |
+| 30-69 | Regular updaters and inventories (the default band)           | `composer`, `conda`, `gcloud`, `gopls`, `helm`, `npm`, `omzsh`, `pear`, `rust`, `yarn`, `msupdate`, `uvtools`, `sparkledrift`, `docker` |
+| 70-99 | Reports, after everything has finished downloading            | `devcaches`, `sparklecache`, `cargosources`, `composerbackups`, `yarnmetadata`, `deno`, `platformio`, `bun`, `whispermodels`, `mole` |
+| 100+  | System updates that may force a restart                       | `osx`                                                                                                                          |
 
-A plugin that does not care about its position omits `PLUGIN_PRIORITY` and gets
-the default of `50`. Plugins sharing a priority run alphabetically, so the order
-is always deterministic. The resolved order is printed at the start of a run.
+Plugins sharing a priority run alphabetically, so the order is always
+deterministic. The resolved order is printed at the start of a run.
 
-Cleanup belongs after the updaters: pruning caches first only frees space that
-`brew`, `npm`, and `yarn` refill minutes later.
+Reports belong after the updaters: cache sizes measured first would be stale
+the moment `brew`, `npm`, and `yarn` finish downloading. No plugin deletes
+anything; the three guarded cleanup operations run only through `--clean`.
 
 ## Shell plugin sources
 
