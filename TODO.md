@@ -97,6 +97,23 @@ survived upgrades of npm, jscpd, pnpm and `@playwright/mcp`.
 (daemon down), both status 20 as designed. Still zero integrity events across
 every run so far.
 
+**Third run caught a further defect, fourth confirmed the fix.** Run 3 exited 1
+on `omzsh`: `git pull` of `zsh-autosuggestions` died with
+`LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443`.
+Retrying the identical pull by hand succeeded immediately, so it was a
+transient TLS drop. Unlike the Mole and `brew doctor` cases, the update here
+genuinely did not happen, so failing was correct - what was wrong was giving up
+after one attempt when `brew update` already had three. Fixed by adding a
+bounded three-attempt retry to the plugin's git pulls, and `omzsh` now skips
+with 20 instead of 0 when Oh My Zsh is absent. Run 4: exit 0,
+`total=27 successful=25 failed=0 skipped=2`, 216 seconds, exactly one
+`plugin_end` per plugin with no duplicates.
+
+Note for the 03:15 verification: runs 2 and 4 had a `degraded` preflight
+because this session was loading the machine. Manual mode ignores the deferral,
+so all 27 plugins still ran, but no `--scheduled` run has yet been observed on
+an unloaded machine.
+
 - [x] PEAR was broken on this machine, independently of RocketUpdater: every
       `pear`/`pecl` command died with
       `Failed opening required 'Console/Getopt.php'`. Root cause was not a
