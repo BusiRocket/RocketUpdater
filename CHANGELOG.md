@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Launchd-safe runner: native `lockf` single-instance locking, static plugin
+  metadata validation without executing plugin code, per-plugin child
+  processes with bounded timeouts, structured 0600 event logging, and a
+  fail-closed preflight (`--preflight-only`) that records disk, power, load,
+  backup, FDA, DNS, and required binaries.
+- Mode-aware CLI: `--scheduled` updates and reports with zero reachable
+  deletion and no sudo probing; a TTY-only `--clean <homebrew|npm|sparkle|all>`
+  dispatches guarded, typed-confirmation cleanup operations.
+- Global npm package-tree integrity snapshots around `npm install -g` and the
+  Homebrew `node` formula upgrade; damage to any non-target package stops
+  further global updates and is logged as a structured integrity event.
+
+### Changed
+
+- Homebrew 2.0.0: per-item formula and cask upgrades (greedy only for
+  `codexbar` and `goplaces`), no blanket `--greedy` retries, and
+  `brew cleanup` moved behind the manual `--clean homebrew` guard.
+- Docker 2.0.0 and Mole 2.0.0 are report-only (`docker system df`,
+  `mo clean --dry-run`); all pruning is a recorded human decision.
+- OSX 2.0.0 downloads updates with `softwareupdate -d -r` only, reports
+  restart-required as a terminal state, and reports Chrome caches instead of
+  deleting them; `sudo purge` is gone.
+- Composer, Conda, DevCaches, NPM, and Yarn 2.0.0 no longer delete any cache;
+  npm cache removal lives only behind the manual `--clean npm` guard, and the
+  NPX plugin is retired with its `_npx` size folded into the npm report.
+- A missing tool now skips a plugin with status 20, and core update failures
+  return nonzero instead of hiding behind warnings.
+
 - Root access is requested once at the start of a run, while stdin is still the
   terminal, and the grant is refreshed until the run finishes so it does not
   expire before the steps that need it. Declining continues the run.

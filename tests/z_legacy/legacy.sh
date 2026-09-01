@@ -9,24 +9,29 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="$(mktemp -d "$ROOT_DIR/.regression-fixture.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-mkdir -p "$TMP_DIR/bin" "$TMP_DIR/home"
+mkdir -p "$TMP_DIR/bin" "$TMP_DIR/home" "$TMP_DIR/global-root"
 
-cat >"$TMP_DIR/bin/npm" <<'EOF'
+cat >"$TMP_DIR/bin/npm" <<EOF
 #!/bin/bash
-if [ "$1" = "install" ] && [ "$2" = "-g" ] && [ "$3" = "npm@latest" ]; then
+if [ "\$1" = "root" ]; then
+    echo "$TMP_DIR/global-root"
     exit 0
 fi
 
-if [ "$1" = "install" ] && [ "$2" = "-g" ] && [ "$3" = "badpkg@2.0.0" ]; then
+if [ "\$1" = "install" ] && [ "\$2" = "-g" ] && [ "\$3" = "npm@latest" ]; then
+    exit 0
+fi
+
+if [ "\$1" = "install" ] && [ "\$2" = "-g" ] && [ "\$3" = "badpkg@2.0.0" ]; then
     echo "simulated npm failure" >&2
     exit 1
 fi
 
-if [ "$1" = "cache" ]; then
+if [ "\$1" = "cache" ]; then
     exit 0
 fi
 
-if [ "$1" = "outdated" ]; then
+if [ "\$1" = "outdated" ]; then
     exit 0
 fi
 
@@ -118,9 +123,16 @@ FAKE_ROOT="$TMP_DIR/fake"
 mkdir -p "$FAKE_ROOT/plugins"
 cp "$ROOT_DIR/RocketUpdater.sh" "$FAKE_ROOT/"
 cp -R "$ROOT_DIR/lib" "$FAKE_ROOT/"
+cp -R "$ROOT_DIR/scripts" "$FAKE_ROOT/"
 
 cat >"$FAKE_ROOT/plugins/greedy.sh" <<'EOF'
+PLUGIN_NAME="Greedy"
+PLUGIN_VERSION="1.0.0"
+DISABLE=false
 PLUGIN_PRIORITY=10
+PLUGIN_TIMEOUT_SECONDS=30
+PLUGIN_SCHEDULE_ACTION=run
+
 update_greedy() {
     if read -r line; then
         echo "greedy plugin read: $line"
@@ -131,7 +143,13 @@ update_greedy() {
 EOF
 
 cat >"$FAKE_ROOT/plugins/tail_end.sh" <<'EOF'
+PLUGIN_NAME="Tail end"
+PLUGIN_VERSION="1.0.0"
+DISABLE=false
 PLUGIN_PRIORITY=90
+PLUGIN_TIMEOUT_SECONDS=30
+PLUGIN_SCHEDULE_ACTION=run
+
 update_tail_end() {
     echo "tail_end plugin ran"
 }
@@ -252,13 +270,11 @@ grep -q "No terminal available for a sudo prompt" "$PEAR_OUTPUT"
 grep -q "PEAR/PECL update completed" "$PEAR_OUTPUT"
 
 # Case 2: root was granted, but the privileged command fails anyway. Each step
-# must report the failure and retry the same command unprivileged.
+# must report the failure and retry the same command unprivileged. A non-TTY
+# run never holds a grant since the mode-aware sudo split, so the plugin is
+# driven directly with SUDO_AVAILABLE=true.
 cat >"$TMP_DIR/bin/sudo" <<'EOF'
 #!/bin/bash
-if [ "$1" = "-n" ] && [ "$2" = "true" ]; then
-    exit 0
-fi
-
 echo "sudo: unable to execute the requested command" >&2
 exit 1
 EOF
@@ -267,7 +283,18 @@ chmod +x "$TMP_DIR/bin/sudo"
 
 PEAR_FALLBACK_OUTPUT="$TMP_DIR/pear-fallback.txt"
 set +e
-PATH="$TMP_DIR/bin:$PATH" HOME="$TMP_DIR/home" "$ROOT_DIR/RocketUpdater.sh" pear </dev/null >"$PEAR_FALLBACK_OUTPUT" 2>&1
+PATH="$TMP_DIR/bin:$PATH" HOME="$TMP_DIR/home" SUDO_AVAILABLE=true /bin/bash -c '
+    set -u
+    source "'"$ROOT_DIR"'/lib/print_message.sh"
+    source "'"$ROOT_DIR"'/lib/echo_info.sh"
+    source "'"$ROOT_DIR"'/lib/echo_success.sh"
+    source "'"$ROOT_DIR"'/lib/echo_warning.sh"
+    source "'"$ROOT_DIR"'/lib/echo_error.sh"
+    source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+    source "'"$ROOT_DIR"'/lib/command_exists.sh"
+    source "'"$ROOT_DIR"'/plugins/pear.sh"
+    update_pear
+' </dev/null >"$PEAR_FALLBACK_OUTPUT" 2>&1
 PEAR_FALLBACK_EXIT_CODE=$?
 set -e
 

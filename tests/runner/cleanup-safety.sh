@@ -18,7 +18,8 @@ if find "$ROOT_DIR/cleanup" -type f -name '*.sh' -print | sed 's#.*/##; s#\.sh$#
     exit 1
 fi
 
-if rg -n --glob '*.sh' '(rm -rf|rm -r|find .*-(delete|exec .*rm)|cache clean|clear-npx-cache|\b(prune|purge|cleanup)\b)' \
+if rg -n --glob '*.sh' \
+    'rm -rf|rm -r |find .* -delete|find .* -exec .*rm|brew cleanup|npm cache (clean|verify)|clear-npx-cache|yarn cache clean|uv cache prune|pnpm store prune|pip3 cache purge|conda clean|composer clearcache|mo clean([^ -]|$)|docker (system|container|image|volume|network|builder) prune|sudo purge|softwareupdate -ia' \
     "$ROOT_DIR" -g '!tests/**' -g '!cleanup/guard_homebrew_cleanup.sh' -g '!cleanup/guard_npm_public_cache.sh' \
     -g '!cleanup/guard_sparkle_obsolete_installations.sh' | grep -q .; then
     echo "RED cleanup safety: destructive command remains outside the exact cleanup allowlist"

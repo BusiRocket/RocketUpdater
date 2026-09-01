@@ -1,36 +1,41 @@
 #!/bin/bash
 
 PLUGIN_NAME="Mole"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=90
 PLUGIN_TIMEOUT_SECONDS=1800
-PLUGIN_SCHEDULE_ACTION=run
-# Heaviest cleanup, and the slowest step in a run: it scans the whole disk, so
-# it goes after every updater and after the cheaper cleanup plugins.
+PLUGIN_SCHEDULE_ACTION=report
+# Report-only: Mole's clean target set changes with the third-party binary, so
+# no fixed guard can prove its candidates are reconstructable. The dry run is
+# the whole scheduled surface.
 
 check_mole() {
     command -v mo >/dev/null 2>&1
 }
 
-update_mole() {
+report_mole() {
     if ! check_mole; then
         echo_skip "Mole (mo) is not installed. Skipping... (brew install mole)"
-        return 0
+        return 20
     fi
 
-    # Runs without sudo: system caches are skipped, user-level caches are
-    # cleaned. Mole keeps its own whitelist (mo clean --whitelist).
-    # Streamed, not piped into tail: the scan takes minutes with no output of
-    # its own, and a pipe would both hide the progress and hand the exit status
-    # of tail to the check below, hiding every failure.
-    echo_info "Mole: Running deep clean (user-level, non-interactive)..."
-    if mo clean 2>&1; then
-        echo_success "Mole cleanup completed"
-    else
-        echo_error "Mole cleanup reported errors"
+    local mole_path
+    mole_path=$(command -v mo)
+    printf 'mole version=%s sha256=%s\n' \
+        "$(mo --version 2>/dev/null | head -1)" \
+        "$(shasum -a 256 "$mole_path" 2>/dev/null | awk '{ print $1 }')"
+
+    echo_info "Mole: Previewing clean candidates (dry run only)..."
+    if ! mo clean --dry-run 2>&1; then
+        echo_error "Mole dry run reported errors"
         return 1
     fi
 
+    echo_warning "Mole removal stays manual; the dry run above is evidence, not action"
     return 0
+}
+
+update_mole() {
+    report_mole
 }

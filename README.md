@@ -46,8 +46,9 @@ Simply execute the `RocketUpdater.sh` script to begin the update process. The sc
 ## Root access
 
 Some steps do more as root: PEAR and PECL write into system directories, and the
-macOS plugin purges the disk cache. RocketUpdater asks for your password once, at
-the start of the run, and keeps the grant alive until it finishes.
+macOS plugin downloads recommended system updates. RocketUpdater asks for your
+password once, at the start of the run, and keeps the grant alive until it
+finishes.
 
 Declining is a supported answer. Press Ctrl-D and the run continues; the steps
 that wanted root are attempted unprivileged instead of being skipped. The same
@@ -83,6 +84,15 @@ is always deterministic. The resolved order is printed at the start of a run.
 
 Cleanup belongs after the updaters: pruning caches first only frees space that
 `brew`, `npm`, and `yarn` refill minutes later.
+
+## Shell plugin sources
+
+The Oh My Zsh custom repositories under `~/.oh-my-zsh/custom` are the canonical
+sourced copies of `powerlevel10k`, `zsh-autosuggestions`, and
+`zsh-syntax-highlighting`. The Homebrew formulae with the same names are shadow
+installs that `.zshrc` does not source. No plugin or scheduled command
+uninstalls them; the one-off decision to remove the three shadow formulae is
+recorded in [TODO.md](TODO.md) and requires human approval.
 
 ## Formatting and linting
 

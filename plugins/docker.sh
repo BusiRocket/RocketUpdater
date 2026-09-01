@@ -1,67 +1,45 @@
 #!/bin/bash
 
 PLUGIN_NAME="Docker"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=70
 PLUGIN_TIMEOUT_SECONDS=1800
-PLUGIN_SCHEDULE_ACTION=run
-# Cleanup: pruning before the updaters run only frees space they refill.
+PLUGIN_SCHEDULE_ACTION=report
+# Report-only: container, image, volume, network, and build-cache removal is a
+# separate human decision recorded in TODO.md, never a scheduled operation.
 
 check_docker() {
     command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
 }
 
-update_docker() {
+report_docker() {
     if ! check_docker; then
-        echo_skip "Docker is not running or not installed. Skipping..."
-        return 0
+        echo_skip "Docker is not running or not installed"
+        return 20
     fi
 
-    # Remove exited containers
-    echo_info "Docker: Removing exited containers..."
-    local exited_containers
-    exited_containers=$(docker ps -a -f status=exited -q 2>/dev/null)
-
-    if [ -n "$exited_containers" ]; then
-        echo "$exited_containers" | xargs docker rm 2>/dev/null || true
-        echo_success "Removed exited containers"
-    else
-        echo_skip "No exited containers to remove"
+    echo_info "Docker: Reporting disk usage..."
+    if ! docker system df 2>&1; then
+        echo_error "Docker disk usage report failed"
+        return 1
     fi
 
-    # Remove dead containers
-    echo_info "Docker: Removing dead containers..."
-    local dead_containers
-    dead_containers=$(docker ps -a -f status=dead -q 2>/dev/null)
-
-    if [ -n "$dead_containers" ]; then
-        echo "$dead_containers" | xargs docker rm -f 2>/dev/null || true
-        echo_success "Removed dead containers"
-    else
-        echo_skip "No dead containers to remove"
+    if command_exists orbctl; then
+        echo_info "OrbStack: Reporting status..."
+        orbctl status 2>&1 || echo_warning "OrbStack status was unavailable"
     fi
 
-    # Prune dangling images
-    echo_info "Docker: Pruning dangling images..."
-    docker image prune -f 2>/dev/null || true
+    local orbstack_root
+    for orbstack_root in "$HOME/.orbstack" "$HOME/OrbStack"; do
+        if [ -d "$orbstack_root" ]; then
+            du -sh "$orbstack_root" 2>&1
+        fi
+    done
 
-    # Prune unused images (with confirmation skipped)
-    echo_info "Docker: Pruning unused images..."
-    docker image prune -a -f 2>/dev/null || true
-
-    # Prune unused volumes
-    echo_info "Docker: Pruning unused volumes..."
-    docker volume prune -f 2>/dev/null || true
-
-    # Prune unused networks
-    echo_info "Docker: Pruning unused networks..."
-    docker network prune -f 2>/dev/null || true
-
-    # Prune build cache
-    echo_info "Docker: Pruning build cache..."
-    docker builder prune -f 2>/dev/null || true
-
-    echo_success "Docker cleanup completed"
     return 0
+}
+
+update_docker() {
+    report_docker
 }

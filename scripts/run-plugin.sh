@@ -45,6 +45,12 @@ esac
 
 # shellcheck source=../lib/command_exists.sh
 source "$ROOT_DIR/lib/command_exists.sh" || exit 78
+# shellcheck source=../lib/log_event.sh
+source "$ROOT_DIR/lib/log_event.sh" || exit 78
+# shellcheck source=../lib/snapshot_global_npm_packages.sh
+source "$ROOT_DIR/lib/snapshot_global_npm_packages.sh" || exit 78
+# shellcheck source=../lib/compare_global_npm_snapshots.sh
+source "$ROOT_DIR/lib/compare_global_npm_snapshots.sh" || exit 78
 # shellcheck source=/dev/null
 source "$PLUGIN_FILE" || exit $?
 

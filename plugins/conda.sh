@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Conda"
-PLUGIN_VERSION="1.2.1"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=50
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -72,12 +72,8 @@ update_conda_environment() {
 update_conda() {
     if ! check_conda; then
         echo_skip "Conda is not installed. Skipping..."
-        return 0
+        return 20
     fi
-
-    # Clean conda cache
-    echo_info "Conda: Cleaning cache..."
-    conda clean --all -y 2>&1 || true
 
     # Update conda itself: use only conda-forge so the latest conda (e.g. 26.1.1) is installed
     echo_info "Conda: Updating Conda..."

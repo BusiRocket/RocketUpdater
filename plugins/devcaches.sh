@@ -1,43 +1,41 @@
 #!/bin/bash
 
 PLUGIN_NAME="DevCaches"
-PLUGIN_VERSION="1.0.0"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=80
 PLUGIN_TIMEOUT_SECONDS=1800
 PLUGIN_SCHEDULE_ACTION=run
-# Cleanup: npm/yarn/pnpm must have finished downloading before pruning.
+# Report-only: uv, pnpm, and pip cache contents have no per-object public
+# provenance proof, so their removal stays a manual decision.
 
-# Developer-tool caches not covered by other plugins or by Mole:
-# uv (Python), pnpm content-addressable store, pip. npm/yarn/composer
-# caches are handled by their own plugins.
+report_devcache_directory() {
+    local cache_label=$1
+    local cache_dir=$2
+
+    if [ -n "$cache_dir" ] && [ -d "$cache_dir" ]; then
+        printf 'devcache %s=%s\n' "$cache_label" "$cache_dir"
+        du -sk "$cache_dir" 2>&1
+    else
+        echo_skip "No $cache_label cache directory to report"
+    fi
+}
+
 update_devcaches() {
-    # uv keeps a global wheel cache that grows unbounded. Serena MCP servers
-    # (uvx) hold the cache lock while Claude Code sessions are open, so fail
-    # fast instead of hanging for 300s and treat the lock as a skip.
     if command -v uv >/dev/null 2>&1; then
-        echo_info "uv: Pruning unused cache entries..."
-        if UV_LOCK_TIMEOUT=10 uv cache prune 2>&1; then
-            echo_success "uv cache pruned"
-        else
-            echo_skip "uv cache locked by idle uvx servers (run 'uv cache prune --force' manually if safe)"
-        fi
+        report_devcache_directory uv "$(UV_LOCK_TIMEOUT=10 uv cache dir 2>/dev/null)"
     else
         echo_skip "uv is not installed"
     fi
 
     if command -v pnpm >/dev/null 2>&1; then
-        echo_info "pnpm: Pruning unreferenced packages from store..."
-        pnpm store prune 2>&1 | tail -2 || true
-        echo_success "pnpm store pruned"
+        report_devcache_directory pnpm-store "$(pnpm store path 2>/dev/null)"
     else
         echo_skip "pnpm is not installed"
     fi
 
     if command -v pip3 >/dev/null 2>&1; then
-        echo_info "pip: Purging download cache..."
-        pip3 cache purge 2>&1 | tail -1 || true
-        echo_success "pip cache purged"
+        report_devcache_directory pip "$(pip3 cache dir 2>/dev/null)"
     else
         echo_skip "pip3 is not installed"
     fi

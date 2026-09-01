@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Homebrew"
-PLUGIN_VERSION="1.0.1"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=10
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -12,20 +12,20 @@ check_homebrew() {
     command_exists brew
 }
 
+# run_brew_step NAME MAX_ATTEMPTS COMMAND [ARG...] runs the exact argv without
+# a shell round-trip; the caller chooses how many attempts the step deserves.
 run_brew_step() {
     local step_name=$1
-    local command=$2
-    local output=""
+    local max_attempts=$2
+    shift 2
     local attempt=1
-    local max_attempts=3
+    local step_status
 
     while [ "$attempt" -le "$max_attempts" ]; do
-        output=$(eval "$command" 2>&1)
-        local status=$?
+        "$@" 2>&1
+        step_status=$?
 
-        printf '%s\n' "$output"
-
-        if [ "$status" -eq 0 ]; then
+        if [ "$step_status" -eq 0 ]; then
             return 0
         fi
 
@@ -41,36 +41,113 @@ run_brew_step() {
     return 1
 }
 
+# Upgrading the node formula replaces the Node/npm runtime, so the global npm
+# package tree is snapshotted around it; nothing outside the formula may change.
+run_node_formula_upgrade() {
+    if ! command_exists npm; then
+        run_brew_step "Upgrade of formula node" 1 brew upgrade --formula node
+        return $?
+    fi
+
+    local before_snapshot
+    local after_snapshot
+    local upgrade_status
+    local violations
+
+    if ! before_snapshot=$(snapshot_global_npm_packages); then
+        echo_error "Global npm snapshot failed before upgrading node"
+        return 1
+    fi
+
+    run_brew_step "Upgrade of formula node" 1 brew upgrade --formula node
+    upgrade_status=$?
+
+    if ! after_snapshot=$(snapshot_global_npm_packages); then
+        echo_error "Global npm snapshot failed after upgrading node"
+        return 1
+    fi
+
+    violations=$(compare_global_npm_snapshots "$before_snapshot" "$after_snapshot" "")
+
+    if [ -n "$violations" ]; then
+        printf '%s\n' "$violations"
+        echo_error "Global npm package tree damaged by the node formula upgrade"
+        if declare -F log_event >/dev/null 2>&1 && [ -n "${ROCKETUPDATER_EVENT_LOG:-}" ]; then
+            log_event error integrity homebrew failed 0 "target=node $violations" || true
+        fi
+        return 1
+    fi
+
+    return "$upgrade_status"
+}
+
 update_homebrew() {
     if ! check_homebrew; then
-        echo_skip "Homebrew is not installed. Skipping..."
-        return 0
+        echo_skip "Homebrew is not installed"
+        return 20
     fi
 
+    export HOMEBREW_NO_ASK=1
     # The user installs their own third-party taps deliberately. Skip Homebrew's
-    # tap-trust prompts so update/upgrade/cleanup process them instead of flooding
-    # the run with "tap is not trusted" warnings and silently skipping formulae.
+    # tap-trust prompts so update/upgrade process them instead of flooding the
+    # run with "tap is not trusted" warnings and silently skipping formulae.
     export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
+    # Only these casks auto-update themselves in ways worth overriding; a
+    # blanket --greedy retries deterministic postflight failures forever.
+    export HOMEBREW_UPGRADE_GREEDY_CASKS="codexbar goplaces"
+
+    local failed_items=""
 
     echo_info 'Homebrew: Updating...'
-    if ! run_brew_step "Homebrew update" "brew update"; then
+    if ! run_brew_step "Homebrew update" 3 brew update; then
         return 1
     fi
 
-    # A single broken cask/formula (e.g. one left half-installed by an
-    # interrupted run) makes brew upgrade exit non-zero. That must not abort the
-    # step or skip cleanup: log it and continue.
-    echo_info 'Homebrew: Upgrading...'
-    if ! run_brew_step "Homebrew upgrade" "brew upgrade --greedy"; then
-        echo_error "Homebrew upgrade reported errors (continuing with cleanup)"
-    fi
-
-    # --prune=all also drops cached downloads of current versions; plain
-    # cleanup keeps them and they accumulate hundreds of MB.
-    echo_info 'Homebrew: Cleaning...'
-    if ! run_brew_step "Homebrew cleanup" "brew cleanup --prune=all"; then
+    echo_info 'Homebrew: Enumerating outdated formulae...'
+    local outdated_formulae
+    if ! outdated_formulae=$(brew outdated --formula --quiet 2>&1); then
+        printf '%s\n' "$outdated_formulae"
+        echo_error "Homebrew could not enumerate outdated formulae"
         return 1
     fi
 
+    # Upgrade one item at a time so one broken formula or cask cannot mask or
+    # abort the rest, and never retry a deterministic upgrade failure.
+    local item
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        echo_info "Homebrew: Upgrading formula $item..."
+        if [ "$item" = node ]; then
+            if ! run_node_formula_upgrade; then
+                failed_items="$failed_items $item"
+            fi
+        elif ! run_brew_step "Upgrade of formula $item" 1 brew upgrade --formula "$item"; then
+            failed_items="$failed_items $item"
+        fi
+    done <<<"$outdated_formulae"
+
+    echo_info 'Homebrew: Enumerating outdated casks...'
+    local outdated_casks
+    if ! outdated_casks=$(brew outdated --cask --quiet 2>&1); then
+        printf '%s\n' "$outdated_casks"
+        echo_error "Homebrew could not enumerate outdated casks"
+        return 1
+    fi
+
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        echo_info "Homebrew: Upgrading cask $item..."
+        if ! run_brew_step "Upgrade of cask $item" 1 \
+            brew upgrade --cask --no-ask --no-quit "$item"; then
+            failed_items="$failed_items $item"
+        fi
+    done <<<"$outdated_casks"
+
+    if [ -n "$failed_items" ]; then
+        echo_error "Homebrew items failed:$failed_items"
+        return 1
+    fi
+
+    echo_success "Homebrew packages updated"
     return 0
 }
