@@ -31,8 +31,28 @@ report_mole() {
         "$mole_version" \
         "$(shasum -a 256 "$mole_path" 2>/dev/null | awk '{ print $1 }')"
 
+    # Mole abandons its own dry run when a per-item size check exceeds its
+    # budget, which this machine's 71 GB OrbStack blob does every time. Give it
+    # a larger budget than the 30s default, still far inside the plugin timeout.
+    export MOLE_TIMEOUT_DISK_VERIFY_SEC="${MOLE_TIMEOUT_DISK_VERIFY_SEC:-120}"
+
     echo_info "Mole: Previewing clean candidates (dry run only)..."
-    if ! mo clean --dry-run 2>&1; then
+    local dry_run_output
+    local dry_run_status
+    dry_run_output=$(mo clean --dry-run 2>&1)
+    dry_run_status=$?
+    printf '%s\n' "$dry_run_output"
+
+    if [ "$dry_run_status" -ne 0 ]; then
+        # An abandoned measurement is incomplete evidence, not a RocketUpdater
+        # failure, and must not mark the whole scheduled run failed. Anything
+        # else stays a failure, so unrecognized output fails loudly.
+        case $dry_run_output in
+        *"Dry run cancelled"* | *"size check timed out"*)
+            echo_skip "Mole abandoned its own size check; the preview above is under-reported"
+            return 20
+            ;;
+        esac
         echo_error "Mole dry run reported errors"
         return 1
     fi

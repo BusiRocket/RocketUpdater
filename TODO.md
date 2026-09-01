@@ -41,6 +41,13 @@
       scheduled mode on 2026-09-01. The Task 3.4 gate passed: exit 0; the run's
       only events were run_start, preflight ready, run_end success; logs 0600;
       directory 0700; empty stderr; no ANSI escape; no surviving child.
+- [ ] `report_docker` spends about 86 seconds reaching a dead daemon before
+      skipping. Observed in the 2026-09-01 canary (`plugin_end docker skipped`
+      with duration 86) while OrbStack was not running: the Docker CLI has no
+      connect timeout on this path, so every scheduled run pays that minute and
+      a half for nothing. It is correct, just slow. Cheapest fix is bounding the
+      existing `docker info` gate with the coreutils timeout already required by
+      preflight, rather than reimplementing the gate.
 - [~] Task 3.5 supervised canary — first execution was **not representative**.
       The machine was under real working load (1-minute average 56-62 against 16
       logical CPUs: node at 344% CPU, Backblaze transmitting, Chrome, Orca,
@@ -53,6 +60,13 @@
       `tail "$HOME/Library/Logs/RocketUpdater/events.log"` shows `preflight`
       with `ready` (not `degraded`), exactly one `plugin_end` per plugin, and
       `run_end` with `status=success`.
+
+      What the run did prove: every one of the 27 plugins emitted exactly one
+      `plugin_end`; the deferral gate fired for all `run` actions; no deletion,
+      prune, purge, or cleanup command appeared anywhere in the output; no child
+      survived `run_end`; and the summary was truthful
+      (`total=27 successful=1 failed=1 skipped=25`). The single failure was
+      Mole, diagnosed and fixed below.
 
 ## Manual disk-reclamation decisions
 

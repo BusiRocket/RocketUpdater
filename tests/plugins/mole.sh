@@ -18,7 +18,8 @@ case "$*" in
     exit 0
     ;;
 'clean --dry-run')
-    printf 'would clean: sample\n'
+    printf 'budget=%s\n' "${MOLE_TIMEOUT_DISK_VERIFY_SEC:-unset}"
+    printf '%s\n' "${MOLE_TEST_DRY_RUN_OUTPUT:-would clean: sample}"
     exit "${MOLE_TEST_DRY_RUN_STATUS:-0}"
     ;;
 esac
@@ -67,14 +68,34 @@ if grep -Eq '^clean$|^clean [^-]' "$STATE_DIR/mo.log"; then
     exit 1
 fi
 
-# Case 3: a failing dry run returns 1.
+if ! grep -q 'budget=120' "$STATE_DIR/output"; then
+    echo "RED mole plugin: the dry run did not receive a raised size-check budget"
+    exit 1
+fi
+
+# Case 3: a failing dry run with unrecognized output returns 1, so an unknown
+# Mole failure still fails loudly.
 set +e
 MOLE_TEST_DRY_RUN_STATUS=1 run_report "$FIXTURE_DIR/bin"
 REPORT_STATUS=$?
 set -e
 if [ "$REPORT_STATUS" -ne 1 ]; then
-    echo "RED mole plugin: a failed dry run was not returned as 1"
+    echo "RED mole plugin: an unrecognized dry-run failure was not returned as 1"
     exit 1
 fi
+
+# Case 4: Mole abandoning its own size check is incomplete evidence, not a
+# RocketUpdater failure, so it skips with 20 and still prints the preview.
+for cancellation_text in 'Dry run cancelled' 'a scan or size check timed out (exit 124)'; do
+    set +e
+    MOLE_TEST_DRY_RUN_STATUS=1 MOLE_TEST_DRY_RUN_OUTPUT="$cancellation_text" \
+        run_report "$FIXTURE_DIR/bin"
+    REPORT_STATUS=$?
+    set -e
+    if [ "$REPORT_STATUS" -ne 20 ] || ! grep -q "$cancellation_text" "$STATE_DIR/output"; then
+        echo "RED mole plugin: an abandoned size check did not skip with 20 and keep its preview"
+        exit 1
+    fi
+done
 
 echo "mole plugin contract passed"

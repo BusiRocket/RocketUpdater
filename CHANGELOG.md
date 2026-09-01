@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NPX plugin is retired with its `_npx` size folded into the npm report.
 - A missing tool now skips a plugin with status 20, and core update failures
   return nonzero instead of hiding behind warnings.
+- `report_mole` raises Mole's own `MOLE_TIMEOUT_DISK_VERIFY_SEC` size-check
+  budget to 120 seconds and treats a dry run that Mole itself abandons as an
+  incomplete measurement (status 20) rather than a failure, so an informational
+  report cannot mark a whole scheduled run failed. Any other nonzero exit, or
+  unrecognized output, still fails loudly. It also reports the binary's SHA-256
+  as its identity because this Mole build exposes no version string.
 
 - Root access is requested once at the start of a run, while stdin is still the
   terminal, and the grant is refreshed until the run finishes so it does not
