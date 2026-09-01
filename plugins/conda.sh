@@ -2,7 +2,10 @@
 
 PLUGIN_NAME="Conda"
 PLUGIN_VERSION="1.2.1"
-DISABLE=${DISABLE:-false}
+DISABLE=false
+PLUGIN_PRIORITY=50
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
 
 check_conda() {
     command -v conda >/dev/null 2>&1

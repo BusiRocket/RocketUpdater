@@ -2,9 +2,10 @@
 
 PLUGIN_NAME="Composer"
 PLUGIN_VERSION="1.3.0"
-DISABLE=${DISABLE:-false}
-
-COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.composer}"
+DISABLE=false
+PLUGIN_PRIORITY=50
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
 
 check_composer() {
     command_exists composer
@@ -18,6 +19,9 @@ is_homebrew_composer() {
 }
 
 update_composer() {
+    COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.composer}"
+    local composer_home=$COMPOSER_HOME
+
     if ! check_composer; then
         echo_skip "Composer is not installed. Skipping..."
         return 0
@@ -39,11 +43,11 @@ update_composer() {
     fi
 
     # Check if global composer.json exists before updating global packages
-    if [ -f "$COMPOSER_HOME/composer.json" ]; then
+    if [ -f "$composer_home/composer.json" ]; then
         echo_info "Composer: Updating global packages..."
         composer --no-interaction global update 2>&1 || echo_warning "Global packages update failed"
     else
-        echo_skip "No global composer.json found at $COMPOSER_HOME. Skipping global update."
+        echo_skip "No global composer.json found at $composer_home. Skipping global update."
     fi
 
     echo_success "Composer update completed"

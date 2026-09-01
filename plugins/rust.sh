@@ -2,7 +2,10 @@
 
 PLUGIN_NAME="Rust"
 PLUGIN_VERSION="1.0.4"
-DISABLE=${DISABLE:-false}
+DISABLE=false
+PLUGIN_PRIORITY=50
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
 
 check_rustup() {
     command_exists rustup

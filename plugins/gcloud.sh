@@ -2,7 +2,10 @@
 
 PLUGIN_NAME="Google Cloud SDK"
 PLUGIN_VERSION="1.1.0"
-DISABLE=${DISABLE:-false} # To disable, set DISABLE=true
+DISABLE=false
+PLUGIN_PRIORITY=50
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
 
 check_gcloud() {
     command_exists gcloud
@@ -45,9 +48,9 @@ heal_gcloud_cli() {
     py=$(printf '%s\n' "$brew_prefix"/opt/python@3.*/libexec/bin/python | sort -V | tail -1)
     [ -x "$py" ] || return 0
 
-    echo_yellow 'Google Cloud SDK: Rebuilding virtualenv (Homebrew postflight left it broken)...'
-    if CLOUDSDK_PYTHON="$py" gcloud config virtualenv create --python-to-use "$py" >/dev/null 2>&1 \
-        && CLOUDSDK_PYTHON="$py" gcloud config virtualenv enable >/dev/null 2>&1; then
+    echo_info 'Google Cloud SDK: Rebuilding virtualenv (Homebrew postflight left it broken)...'
+    if CLOUDSDK_PYTHON="$py" gcloud config virtualenv create --python-to-use "$py" >/dev/null 2>&1 &&
+        CLOUDSDK_PYTHON="$py" gcloud config virtualenv enable >/dev/null 2>&1; then
         echo_success 'Google Cloud SDK: virtualenv rebuilt.'
     else
         echo_warning 'Google Cloud SDK: virtualenv rebuild failed (core gcloud still works).'
@@ -58,7 +61,7 @@ update_gcloud() {
     heal_gcloud_cli
 
     if check_gcloud; then
-        echo_yellow 'Google Cloud SDK: Updating components...'
+        echo_info 'Google Cloud SDK: Updating components...'
         gcloud components update --quiet
     fi
 }

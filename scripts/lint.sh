@@ -10,19 +10,18 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ -f "$ROOT_DIR/lib/bash_colors.sh" ]; then
-    # shellcheck source=../lib/bash_colors.sh
-    source "$ROOT_DIR/lib/bash_colors.sh"
-else
-    echo_success() { echo "✅ $*"; }
-    echo_warning() { echo "⚠️  $*"; }
-fi
+# shellcheck source=../lib/print_message.sh
+source "$ROOT_DIR/lib/print_message.sh"
+# shellcheck source=../lib/echo_success.sh
+source "$ROOT_DIR/lib/echo_success.sh"
+# shellcheck source=../lib/echo_warning.sh
+source "$ROOT_DIR/lib/echo_warning.sh"
 
 SEVERITY="${1:-style}"
 
 if ! command -v shellcheck >/dev/null 2>&1; then
     echo_warning "shellcheck is not installed. Install it to lint shell scripts:"
-    echo "  brew install shellcheck"
+    print_message plain "  brew install shellcheck"
     exit 1
 fi
 
@@ -38,7 +37,7 @@ if [ "$count" -eq 0 ]; then
     exit 0
 fi
 
-# -x follows sourced files so lib/bash_colors.sh resolves instead of warning.
+# -x follows sourced files so the output helpers resolve instead of warning.
 # Project-wide exclusions live in .shellcheckrc.
 if ! shellcheck -x -S "$SEVERITY" "${sh_files[@]}"; then
     echo_warning "shellcheck reported issues at severity '$SEVERITY' or above."

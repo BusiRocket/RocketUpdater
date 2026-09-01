@@ -9,14 +9,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ -f "$ROOT_DIR/lib/bash_colors.sh" ]; then
-    # shellcheck source=../lib/bash_colors.sh
-    source "$ROOT_DIR/lib/bash_colors.sh"
-else
-    echo_info() { echo "ℹ️  $*"; }
-    echo_success() { echo "✅ $*"; }
-    echo_warning() { echo "⚠️  $*"; }
-fi
+# shellcheck source=../lib/print_message.sh
+source "$ROOT_DIR/lib/print_message.sh"
+# shellcheck source=../lib/echo_info.sh
+source "$ROOT_DIR/lib/echo_info.sh"
+# shellcheck source=../lib/echo_success.sh
+source "$ROOT_DIR/lib/echo_success.sh"
+# shellcheck source=../lib/echo_warning.sh
+source "$ROOT_DIR/lib/echo_warning.sh"
 
 CHECK_MODE=false
 if [ "${1:-}" = "--check" ]; then
@@ -25,7 +25,7 @@ fi
 
 if ! command -v shfmt >/dev/null 2>&1; then
     echo_warning "shfmt is not installed. Install it to format shell scripts:"
-    echo "  brew install shfmt"
+    print_message plain "  brew install shfmt"
     exit 1
 fi
 

@@ -2,9 +2,11 @@
 
 PLUGIN_NAME="Docker"
 PLUGIN_VERSION="1.1.0"
-DISABLE=${DISABLE:-false}
-# Cleanup: pruning before the updaters run only frees space they refill.
+DISABLE=false
 PLUGIN_PRIORITY=70
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
+# Cleanup: pruning before the updaters run only frees space they refill.
 
 check_docker() {
     command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1

@@ -2,9 +2,11 @@
 
 PLUGIN_NAME="Homebrew"
 PLUGIN_VERSION="1.0.1"
-DISABLE=${DISABLE:-false} # To disable, set DISABLE=true
-# Bootstrap: the other plugins update binaries Homebrew installs, so it goes first.
+DISABLE=false
 PLUGIN_PRIORITY=10
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
+# Bootstrap: the other plugins update binaries Homebrew installs, so it goes first.
 
 check_homebrew() {
     command_exists brew
@@ -50,7 +52,7 @@ update_homebrew() {
     # the run with "tap is not trusted" warnings and silently skipping formulae.
     export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
 
-    echo_yellow 'Homebrew: Updating...'
+    echo_info 'Homebrew: Updating...'
     if ! run_brew_step "Homebrew update" "brew update"; then
         return 1
     fi
@@ -58,14 +60,14 @@ update_homebrew() {
     # A single broken cask/formula (e.g. one left half-installed by an
     # interrupted run) makes brew upgrade exit non-zero. That must not abort the
     # step or skip cleanup: log it and continue.
-    echo_yellow 'Homebrew: Upgrading...'
+    echo_info 'Homebrew: Upgrading...'
     if ! run_brew_step "Homebrew upgrade" "brew upgrade --greedy"; then
         echo_error "Homebrew upgrade reported errors (continuing with cleanup)"
     fi
 
     # --prune=all also drops cached downloads of current versions; plain
     # cleanup keeps them and they accumulate hundreds of MB.
-    echo_yellow 'Homebrew: Cleaning...'
+    echo_info 'Homebrew: Cleaning...'
     if ! run_brew_step "Homebrew cleanup" "brew cleanup --prune=all"; then
         return 1
     fi

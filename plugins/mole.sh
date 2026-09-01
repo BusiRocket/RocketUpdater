@@ -2,10 +2,12 @@
 
 PLUGIN_NAME="Mole"
 PLUGIN_VERSION="1.1.0"
-DISABLE=${DISABLE:-false}
+DISABLE=false
+PLUGIN_PRIORITY=90
+PLUGIN_TIMEOUT_SECONDS=1800
+PLUGIN_SCHEDULE_ACTION=run
 # Heaviest cleanup, and the slowest step in a run: it scans the whole disk, so
 # it goes after every updater and after the cheaper cleanup plugins.
-PLUGIN_PRIORITY=90
 
 check_mole() {
     command -v mo >/dev/null 2>&1
