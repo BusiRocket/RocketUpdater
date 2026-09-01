@@ -230,9 +230,20 @@ fi
 grep -q "Yarn update completed" "$YARN_OUTPUT"
 
 # Name the subcommand, so an assertion can tell "pear upgrade actually ran
-# unprivileged" apart from "some other pear subcommand ran".
+# unprivileged" apart from "some other pear subcommand ran". `list` must return
+# a real package table: the plugin upgrades packages one by one, so an empty
+# listing would mean no upgrade is attempted at all.
 cat >"$TMP_DIR/bin/pear" <<'EOF'
 #!/bin/bash
+if [ "$1" = "list" ]; then
+    cat <<'LIST'
+INSTALLED PACKAGES, CHANNEL PEAR.PHP.NET:
+=========================================
+PACKAGE          VERSION STATE
+Archive_Tar      1.6.0   stable
+LIST
+    exit 0
+fi
 echo "unprivileged pear $1 completed"
 EOF
 
@@ -331,6 +342,16 @@ grep -q "PEAR/PECL update completed" "$PEAR_FALLBACK_OUTPUT"
 # summary cannot claim success while "ERROR: commit failed" is on screen.
 cat >"$TMP_DIR/bin/pear" <<'EOF'
 #!/bin/bash
+if [ "$1" = "list" ]; then
+    cat <<'LIST'
+INSTALLED PACKAGES, CHANNEL PEAR.PHP.NET:
+=========================================
+PACKAGE          VERSION STATE
+Archive_Tar      1.6.0   stable
+LIST
+    exit 0
+fi
+
 if [ "$1" = "upgrade" ]; then
     echo "ERROR: commit failed"
     exit 1
