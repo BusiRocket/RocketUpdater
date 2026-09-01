@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="PEAR"
-PLUGIN_VERSION="1.3.0"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=50
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -11,8 +11,44 @@ check_pear() {
     command_exists pear
 }
 
+# Homebrew's php formula ships a PEAR skeleton inside the Cellar and points
+# php.ini's include_path at it, but the actual packages (Console_Getopt among
+# them) are installed under the prefix. PEAR then dies with
+# "Failed opening required 'Console/Getopt.php'" on every command. The wrapper
+# honours PHP_PEAR_INSTALL_DIR, so point it at the tree that really holds the
+# packages instead of editing the user's php.ini.
+resolve_pear_install_dir() {
+    if [ -n "${PHP_PEAR_INSTALL_DIR:-}" ]; then
+        return 0
+    fi
+
+    if pear list >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local candidate
+    for candidate in "$(brew --prefix 2>/dev/null)/share/pear" \
+        /opt/homebrew/share/pear /usr/local/share/pear; do
+        if [ -f "$candidate/Console/Getopt.php" ]; then
+            export PHP_PEAR_INSTALL_DIR="$candidate"
+            echo_info "PEAR: Using the package tree at $candidate"
+            return 0
+        fi
+    done
+
+    echo_warning "PEAR cannot find its own package tree; commands will report the failure"
+    return 0
+}
+
 check_pecl() {
     command_exists pecl
+}
+
+is_homebrew_php() {
+    command_exists brew || return 1
+    local php_path
+    php_path=$(command -v php) || return 1
+    [[ $php_path == "$(brew --prefix)"/* ]]
 }
 
 # PHP warnings are common with newer PHP versions and drown the real output.
@@ -93,8 +129,10 @@ update_pear() {
 
     if [ "$has_pear" = false ] && [ "$has_pecl" = false ]; then
         echo_skip "PEAR and PECL are not installed. Skipping..."
-        return 0
+        return 20
     fi
+
+    resolve_pear_install_dir
 
     # Step 1: Clear caches
     if [ "$has_pear" = true ]; then
@@ -127,14 +165,49 @@ update_pear() {
     # failure. Cache and channel steps stay advisory: they are routine noise and
     # do not mean the update did not happen.
     if [ "$has_pear" = true ]; then
-        echo_info "PEAR: Upgrading PEAR itself..."
-        if ! run_pear_command_privileged "upgrade" "--force" "PEAR"; then
-            has_failures=true
+        # The PEAR package owns pear/peardev/pecl. Under a Homebrew-managed PHP
+        # those live in the Cellar as read-only files that Homebrew replaces
+        # with the formula, so upgrading PEAR itself can only ever end in
+        # "permission denied (delete)" and "ERROR: commit failed". Upgrade the
+        # other packages, which live under the prefix, and leave PEAR to brew.
+        local skip_pear_self=false
+        if is_homebrew_php; then
+            skip_pear_self=true
+            echo_skip "PEAR itself is owned by the Homebrew php formula; brew upgrade php updates it"
+        else
+            echo_info "PEAR: Upgrading PEAR itself..."
+            if ! run_pear_command_privileged "upgrade" "--force" "PEAR"; then
+                has_failures=true
+            fi
         fi
 
-        echo_info "PEAR: Upgrading all packages..."
-        if ! run_pear_command_privileged "upgrade" "--force"; then
+        echo_info "PEAR: Upgrading installed packages..."
+        local pear_list_output
+        local pear_packages=""
+        if ! pear_list_output=$(pear list 2>/dev/null); then
+            echo_error "PEAR: Could not list installed packages"
             has_failures=true
+            pear_list_output=""
+        fi
+
+        if [ -n "$pear_list_output" ]; then
+            pear_packages=$(printf '%s\n' "$pear_list_output" | tail -n +4 |
+                awk '{print $1}' | grep -E '^[A-Za-z][A-Za-z0-9_-]*$' || true)
+        fi
+
+        if [ -n "$pear_packages" ]; then
+            local pear_package
+            for pear_package in $pear_packages; do
+                if [ "$skip_pear_self" = true ] && [ "$pear_package" = "PEAR" ]; then
+                    continue
+                fi
+                echo "  → Upgrading $pear_package..."
+                if ! run_pear_command_privileged "upgrade" "--force" "$pear_package"; then
+                    has_failures=true
+                fi
+            done
+        else
+            echo_skip "No PEAR packages to upgrade"
         fi
     fi
 

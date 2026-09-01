@@ -44,6 +44,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NPX plugin is retired with its `_npx` size folded into the npm report.
 - A missing tool now skips a plugin with status 20, and core update failures
   return nonzero instead of hiding behind warnings.
+- The `pear` plugin resolves PEAR's real package tree instead of trusting
+  php.ini's `include_path`. Homebrew's php formula points the path at a
+  skeleton inside the Cellar while the packages live under the prefix, which
+  made every `pear`/`pecl` command die with
+  `Failed opening required 'Console/Getopt.php'`. It also leaves the `PEAR`
+  package itself to `brew upgrade php` under a Homebrew-managed PHP, because
+  upgrading it tries to replace read-only Cellar binaries and can only end in
+  `ERROR: commit failed`; the remaining packages are upgraded individually.
+- `brewhealth` splits severity: a formula whose dependency is missing fails the
+  run, while `brew doctor` and the autoremove preview are reported without
+  failing. `brew doctor` is advisory by Homebrew's own definition and always
+  has something to say on a lived-in machine, so failing on it made every run
+  permanently red and taught the reader to ignore failures.
 - The `pear` plugin no longer parses a PHP stack trace as the PECL package
   list. A broken PEAR install makes `pecl list` die with a fatal error, and the
   old code turned its stack-trace lines into package names, attempting eight

@@ -90,33 +90,45 @@ Result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
 load, not a permanent condition. Zero integrity events: the global npm tree
 survived upgrades of npm, jscpd, pnpm and `@playwright/mcp`.
 
-- [ ] PEAR is broken on this machine, independently of RocketUpdater. Every
-      `pear`/`pecl` command dies with
-      `Failed opening required 'Console/Getopt.php'` from
-      `/opt/homebrew/Cellar/php/8.5.10/share/php/pear/System.php:20`, so the
-      Console_Getopt package is missing from the Homebrew PHP 8.5.10 PEAR tree.
-      The plugin now reports this honestly instead of hiding it. Smallest next
-      step: decide whether PEAR/PECL is still wanted on this machine at all; if
-      yes, reinstall the PEAR bootstrap for the current PHP, if no, disable the
-      plugin with `DISABLE=true` rather than leaving a permanent red run.
-- [ ] `brewhealth` fails every run because `brew doctor` always has something to
-      say on a real machine. Current findings: deprecated formulae `terraform`
-      and `goplaces`, and unlinked kegs `goplaces`, `pillow`, `pydantic`. That
-      is per the plan's spec ("doctor warnings return 1"), and the findings are
-      genuine, but a health report that is permanently red trains the reader to
-      ignore failures - the same pattern that was corrected for Mole. Smallest
-      next step: either clear the findings (`brew link` the three kegs, replace
-      the two deprecated formulae) or split the plugin so `brew missing` stays a
-      failure while `brew doctor` output is reported without failing the run.
-- [ ] `brew upgrade` deletes the superseded Cellar version of each package it
-      upgrades (observed: `Removing: /opt/homebrew/Cellar/camsnap/0.4.1`). This
-      is Homebrew's own post-install cleanup, not a RocketUpdater command, so
-      "scheduled deletion is exactly zero" is true of every command this
-      repository issues but not of Homebrew's internal behaviour while
-      upgrading. Setting `HOMEBREW_NO_INSTALL_CLEANUP=1` would honour the
-      constraint literally at the cost of unbounded Cellar growth, which no
-      guard currently reclaims. Decide deliberately rather than by omission, and
-      record the choice here.
+- [x] PEAR was broken on this machine, independently of RocketUpdater: every
+      `pear`/`pecl` command died with
+      `Failed opening required 'Console/Getopt.php'`. Root cause was not a
+      missing package but a wrong `include_path`: Homebrew's php formula ships a
+      PEAR skeleton in `Cellar/php/8.5.10/share/php/pear` and php.ini points
+      there, while the real tree with `Console`, `Archive`, `Structures` and
+      `XML` lives in `/opt/homebrew/share/pear`. Fixed 2026-09-01 in plugin
+      v2.0.0 by resolving the real tree and exporting `PHP_PEAR_INSTALL_DIR`,
+      rather than editing the user's php.ini. A second failure surfaced behind
+      it: upgrading the `PEAR` package itself tries to replace the read-only
+      Cellar binaries `pear`, `peardev` and `pecl`, which can only end in
+      `permission denied (delete)` / `ERROR: commit failed`. Under a
+      Homebrew-managed PHP the plugin now leaves that package to
+      `brew upgrade php` and upgrades the rest individually. Verified: the real
+      plugin run now exits 0 after upgrading Archive_Tar, Console_Getopt,
+      Structures_Graph and XML_Util.
+- [x] `brewhealth` no longer fails on advisory output. Fixed 2026-09-01 in
+      plugin v2.0.0 with a severity split: `brew missing` (a formula whose
+      dependency is absent) fails the run, while `brew doctor` and the
+      autoremove preview are reported without failing, because `brew doctor` is
+      advisory by Homebrew's own definition and always has something to say on a
+      lived-in machine. The one real finding it had, `memo: fzf`, was repaired
+      by installing `fzf`; `brew missing` is now clean and the plugin exits 0.
+- [x] Decided 2026-09-01: leave Homebrew's post-install cleanup enabled.
+      `brew upgrade` removes the superseded Cellar version of a package it
+      replaces (`Removing: .../camsnap/0.4.1`), which is intrinsic to upgrading
+      rather than a decision about user data.
+      `HOMEBREW_NO_INSTALL_CLEANUP=1` would satisfy a literal reading of "zero
+      scheduled deletion" while growing the Cellar without bound, and no guard
+      here reclaims old kegs. README now states the nuance instead of leaving
+      the phrase to be misread.
+- [ ] Remaining `brew doctor` advisories, left deliberately because each is a
+      judgment call with real consequences: formulae `terraform` and `goplaces`
+      are deprecated, and kegs `goplaces`, `pillow`, `pydantic` are unlinked.
+      Do **not** blanket-`brew link` those: `pillow` and `pydantic` are commonly
+      left unlinked so they cannot shadow pip-installed versions, and linking
+      them can break a working Python environment. Smallest next step: decide
+      per keg whether anything needs it on `PATH`, and choose a replacement for
+      `terraform` (licence change) separately.
 
 ## Manual disk-reclamation decisions
 

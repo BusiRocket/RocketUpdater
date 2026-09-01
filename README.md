@@ -96,8 +96,19 @@ Plugins sharing a priority run alphabetically, so the order is always
 deterministic. The resolved order is printed at the start of a run.
 
 Reports belong after the updaters: cache sizes measured first would be stale
-the moment `brew`, `npm`, and `yarn` finish downloading. No plugin deletes
-anything; the three guarded cleanup operations run only through `--clean`.
+the moment `brew`, `npm`, and `yarn` finish downloading.
+
+No plugin issues a deletion command, and the three guarded cleanup operations
+run only through `--clean`. One nuance is worth stating plainly rather than
+leaving to a misreading of "zero scheduled deletion": a package manager
+replacing a version still removes what it replaced. `brew upgrade` runs
+Homebrew's own post-install cleanup and drops the superseded Cellar version
+(`Removing: .../camsnap/0.4.1`), and `npm install -g` overwrites the previous
+package tree. That is intrinsic to upgrading, not a separate decision about
+your data, and it is deliberately left enabled: `HOMEBREW_NO_INSTALL_CLEANUP=1`
+would honour the phrase literally while growing the Cellar without bound, and
+no guard here reclaims old kegs. The constraint that matters is upheld -
+RocketUpdater never decides on its own to delete anything you did not replace.
 
 ## Scheduling under launchd
 
