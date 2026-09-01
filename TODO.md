@@ -25,29 +25,34 @@
 
 ## Scheduling activation (blocked on privileged writes)
 
-- [!] Install `/etc/sudoers.d/rocketupdater` from `launchd/rocketupdater.sudoers`
-      as `root:wheel 0440`. Blocked: needs a root password, which an agent must
-      not type. Source already validated with `visudo -c -f`. Smallest next
-      step: `sudo install -m 440 -o root -g wheel launchd/rocketupdater.sudoers
-      /etc/sudoers.d/rocketupdater && sudo visudo -c`, then prove
-      `sudo -n -l /usr/sbin/softwareupdate -d -r` is allowed and
-      `sudo -n -l /usr/sbin/softwareupdate -i -a` is denied.
-- [!] Install `/etc/newsyslog.d/rocketupdater.conf` from
-      `launchd/rocketupdater.newsyslog.conf` as `root:wheel 0644`. Blocked on the
-      same root password. `newsyslog -nvv` also needs root to dry-run. Smallest
-      next step: `sudo install -m 644 -o root -g wheel
-      launchd/rocketupdater.newsyslog.conf /etc/newsyslog.d/rocketupdater.conf`,
-      then `sudo newsyslog -nvv | grep RocketUpdater`.
-- [~] LaunchAgent installed and bootstrapped in **preflight-only** mode on
-      2026-09-01; the Task 3.4 gate passed (exit 0; the run's only events are
-      run_start, preflight ready, run_end success; logs 0600; no ANSI; no
-      surviving child). It stays preflight-only on purpose: the `osx` plugin
-      cannot get its download grant until the sudoers rule above exists, so a
-      canary now would fail by construction. Smallest next step, after the
-      sudoers install: remove `--preflight-only` from
-      `~/Library/LaunchAgents/com.busirocket.rocketupdater.plist`, `bootout` then
-      `bootstrap` again (kickstart does not reload a changed plist), and run the
-      supervised canary of Task 3.5 with package-managed applications closed.
+- [x] Install `/etc/sudoers.d/rocketupdater` as `root:wheel 0440`. Done
+      2026-09-01 through the macOS authorization dialog, so no credential passed
+      through a shell or a transcript. `visudo -c` validates the whole config.
+      Boundary proven by execution, not by `sudo -l` (macOS ships
+      `%admin ALL=(ALL) ALL`, so `sudo -l` reports every command as permitted
+      and cannot discriminate): `sudo -n /usr/sbin/softwareupdate -d -r` exits 0
+      with no prompt, while `sudo -n /usr/bin/true` and
+      `sudo -n /usr/sbin/softwareupdate --version` both exit 1 with
+      "a password is required". The install path was never executed.
+- [x] Install `/etc/newsyslog.d/rocketupdater.conf` as `root:wheel 0644`. Done
+      2026-09-01 in the same authorization. Fields verified tab-separated with
+      `cat -et`.
+- [x] LaunchAgent installed, gated in preflight-only mode, then reloaded in full
+      scheduled mode on 2026-09-01. The Task 3.4 gate passed: exit 0; the run's
+      only events were run_start, preflight ready, run_end success; logs 0600;
+      directory 0700; empty stderr; no ANSI escape; no surviving child.
+- [~] Task 3.5 supervised canary — first execution was **not representative**.
+      The machine was under real working load (1-minute average 56-62 against 16
+      logical CPUs: node at 344% CPU, Backblaze transmitting, Chrome, Orca,
+      codex), so the preflight correctly reported `degraded` and deferred every
+      `run`-action plugin, leaving only the report plugins to execute. That
+      proves the degradation gate works in production but leaves the full
+      updater path under launchd unproven. The job runs at 03:15, when this
+      machine is normally idle, so the natural calendar execution is the real
+      canary. Smallest next step: after a 03:15 run, confirm
+      `tail "$HOME/Library/Logs/RocketUpdater/events.log"` shows `preflight`
+      with `ready` (not `degraded`), exactly one `plugin_end` per plugin, and
+      `run_end` with `status=success`.
 
 ## Manual disk-reclamation decisions
 

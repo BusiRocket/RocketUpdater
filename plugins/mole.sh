@@ -21,9 +21,14 @@ report_mole() {
     fi
 
     local mole_path
+    local mole_version
     mole_path=$(command -v mo)
+    # Mole exposes no version string on this build, so the binary hash is the
+    # authoritative identity of the target set this dry run describes.
+    mole_version=$(mo --version 2>/dev/null | head -1)
+    [ -n "$mole_version" ] || mole_version=unavailable
     printf 'mole version=%s sha256=%s\n' \
-        "$(mo --version 2>/dev/null | head -1)" \
+        "$mole_version" \
         "$(shasum -a 256 "$mole_path" 2>/dev/null | awk '{ print $1 }')"
 
     echo_info "Mole: Previewing clean candidates (dry run only)..."
