@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NPX plugin is retired with its `_npx` size folded into the npm report.
 - A missing tool now skips a plugin with status 20, and core update failures
   return nonzero instead of hiding behind warnings.
+- The `omzsh` plugin retries a failed `git pull` up to three times. A dropped
+  TLS handshake to github.com (`LibreSSL SSL_connect: SSL_ERROR_SYSCALL`) is a
+  transient network failure that succeeds on the next attempt, and one blip
+  should not fail an entire unattended run; a remote that stays unreachable is
+  still reported as a failure. A missing Oh My Zsh now skips with status 20
+  instead of reporting success.
 - The `pear` plugin resolves PEAR's real package tree instead of trusting
   php.ini's `include_path`. Homebrew's php formula points the path at a
   skeleton inside the Cellar while the packages live under the prefix, which

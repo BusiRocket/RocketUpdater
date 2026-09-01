@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="OMZSH"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_VERSION="1.2.0"
 DISABLE=false
 PLUGIN_PRIORITY=50
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -11,13 +11,39 @@ check_omzsh() {
     [ -d "${ZSH:-$HOME/.oh-my-zsh}" ]
 }
 
+# A dropped TLS handshake to github.com ("LibreSSL SSL_connect:
+# SSL_ERROR_SYSCALL") is a transient network failure, not a broken repository:
+# the identical pull succeeds seconds later. Retry a bounded number of times so
+# one blip cannot fail the whole run, while a genuinely unreachable remote is
+# still reported as a failure.
+git_pull_with_retry() {
+    local repo_dir=$1
+    local attempt=1
+    local max_attempts=3
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if (cd "$repo_dir" && git pull 2>&1); then
+            return 0
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            echo_warning "git pull failed on attempt $attempt/$max_attempts; retrying in 5 seconds..."
+            sleep "${OMZSH_RETRY_DELAY_SECONDS:-5}"
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    return 1
+}
+
 update_omzsh() {
     local zsh_dir="${ZSH:-$HOME/.oh-my-zsh}"
     local has_failures=0
 
     if ! check_omzsh; then
         echo_skip "Oh My Zsh is not installed. Skipping..."
-        return 0
+        return 20
     fi
 
     echo_info "Oh My Zsh: Updating..."
@@ -63,7 +89,7 @@ update_omzsh() {
                     fi
                 fi
 
-                if ! (cd "$plugin_dir" && git pull 2>&1); then
+                if ! git_pull_with_retry "$plugin_dir"; then
                     has_failures=1
                     echo_warning "Failed to update $plugin_name"
                     continue
@@ -108,7 +134,7 @@ update_omzsh() {
                     fi
                 fi
 
-                if ! (cd "$theme_dir" && git pull 2>&1); then
+                if ! git_pull_with_retry "$theme_dir"; then
                     has_failures=1
                     echo_warning "Failed to update $theme_name"
                     continue
