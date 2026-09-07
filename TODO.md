@@ -126,11 +126,14 @@
 - [x] `plugins/uvtools.sh` now feeds its tool list on fd 3 as well, so a future
   `uv` that reads stdin cannot silently reduce the run to one tool. Covered by
   `tests/plugins/uvtools.sh`, which fails against the old form.
-- [ ] `xdevplatform/homebrew-tap` Casks/xurl.rb:37 calls the deprecated
+- [!] `xdevplatform/homebrew-tap` Casks/xurl.rb:37 calls the deprecated
   `postflight`; every brew invocation prints the warning on stderr, where it is
-  now harmless to the run. Only the tap owner can fix it. Next step: PR that tap
-  changing `postflight` to `postflight_steps` (pending the owner's go-ahead,
-  since it publishes under the personal GitHub account).
+  now harmless to the run. No PR is possible: that file starts with "generated
+  by GoReleaser. DO NOT EDIT", and it comes from `homebrew_casks.hooks.post.install`
+  in `xdevplatform/xurl`'s `.goreleaser.yaml`, which GoReleaser always renders
+  as a legacy `postflight do ... end`. GoReleaser has no `postflight_steps`
+  support yet — tracked upstream in goreleaser/goreleaser#6870, open. Blocked on
+  that issue; a patch to either repo would be overwritten by the next release.
 
 ## Manual disk-reclamation decisions
 
