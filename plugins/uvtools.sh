@@ -34,14 +34,17 @@ update_uvtools() {
 
     local has_failures=0
     local tool_name
-    while IFS= read -r tool_name; do
+    # The list is fed on fd 3, not stdin: a tool that reads stdin would drain
+    # the rest of it and the run would upgrade one tool while reporting all of
+    # them done, which is exactly what `brew upgrade` did in the homebrew plugin.
+    while IFS= read -r tool_name <&3; do
         [ -n "$tool_name" ] || continue
         echo_info "uv: Upgrading $tool_name..."
         if ! UV_LOCK_TIMEOUT=30 uv tool upgrade --no-progress "$tool_name" 2>&1; then
             has_failures=1
             echo_warning "uv tool upgrade failed or was locked: $tool_name"
         fi
-    done <<<"$tools"
+    done 3<<<"$tools"
 
     if [ "$has_failures" -ne 0 ]; then
         return 1

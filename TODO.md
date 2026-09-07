@@ -108,90 +108,29 @@
 - [x] Docker/OrbStack report: `du` stderr no longer floods the run. Vanished
   paths (live container overlays) are counted and reported as one line saying
   the size is a lower bound.
-- [ ] `brew doctor` advisories, all deliberate decisions, none taken:
-  `goplaces` exists both as an old unlinked formula keg (0.4.3, May) and as the
-  installed cask that owns `/opt/homebrew/bin/goplaces` — the keg is dead weight
-  and `brew uninstall --formula goplaces` would remove it. `terraform` 1.5.7 is
-  still linked and working but its formula is gone (BUSL; upstream moved to
-  `hashicorp/tap`). `pillow` and `pydantic` are unlinked dependency kegs; do not
-  link them blindly, they collide with the Python site-packages.
+- [x] `brew doctor` advisories resolved on 2026-09-07:
+  - `goplaces`: the 0.4.3 formula keg was dead weight (no formula, no dependents,
+    nothing linked into it; `/opt/homebrew/bin/goplaces` belongs to the 0.4.9
+    cask). Uninstalled. Homebrew autoremoved an orphaned `unbound` 1.26.0 in the
+    same command; nothing depends on it and `brew missing` is clean, so it was
+    an unused leftover. `brew install unbound` restores it if that is wrong.
+  - `terraform`: 1.5.7 was an orphaned keg of a formula Homebrew removed (BUSL).
+    There is no `.tf` file anywhere under `~/p` and no state file, so nothing
+    could be broken by a version change: uninstalled and replaced with
+    `hashicorp/tap/terraform` 1.16.1, which is maintained and upgradeable.
+  - `pillow` and `pydantic`: left unlinked deliberately. They are dependency
+    kegs of `img2pdf` and `ocrmypdf`, which run from their own virtualenvs and
+    work today. `brew link --dry-run` shows linking would write PIL and pydantic
+    into the global `/opt/homebrew/lib/python3.13/site-packages`, so the warning
+    is the correct state, not a defect. Re-check only if a dependent breaks.
+- [x] `plugins/uvtools.sh` now feeds its tool list on fd 3 as well, so a future
+  `uv` that reads stdin cannot silently reduce the run to one tool. Covered by
+  `tests/plugins/uvtools.sh`, which fails against the old form.
 - [ ] `xdevplatform/homebrew-tap` Casks/xurl.rb:37 calls the deprecated
-  `postflight`. It is upstream noise on stderr, now harmless to the run. Next
-  step: open a PR on that tap changing it to `postflight_steps`.
-- [ ] `plugins/uvtools.sh` still feeds its tool list on the loop's stdin. `uv
-  tool upgrade` does not drain it today (all 7 tools upgraded in the 2026-09-07
-  run), so this is latent, not a bug; move it to fd 3 when that file is touched.
-
-## Findings from the first full run (2026-09-01, 27 plugins, 5 minutes)
-
-First result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
-`ready`, so the earlier `degraded` canary was caused by this session's own test
-load, not a permanent condition. Zero integrity events: the global npm tree
-survived upgrades of npm, jscpd, pnpm and `@playwright/mcp`.
-
-**After the fixes below, re-run clean:** `run_end status=success`,
-`total=27 successful=25 failed=0 skipped=2`, 215 seconds, with `brewhealth`
-(16s), `pear` (14s) and `mole` (84s) all succeeding and the summary reading
-"No plugin failures." The two skips are `conda` (not installed) and `docker`
-(daemon down), both status 20 as designed. Still zero integrity events across
-every run so far.
-
-**Third run caught a further defect, fourth confirmed the fix.** Run 3 exited 1
-on `omzsh`: `git pull` of `zsh-autosuggestions` died with
-`LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443`.
-Retrying the identical pull by hand succeeded immediately, so it was a
-transient TLS drop. Unlike the Mole and `brew doctor` cases, the update here
-genuinely did not happen, so failing was correct - what was wrong was giving up
-after one attempt when `brew update` already had three. Fixed by adding a
-bounded three-attempt retry to the plugin's git pulls, and `omzsh` now skips
-with 20 instead of 0 when Oh My Zsh is absent. Run 4: exit 0,
-`total=27 successful=25 failed=0 skipped=2`, 216 seconds, exactly one
-`plugin_end` per plugin with no duplicates.
-
-Note for the 03:15 verification: runs 2 and 4 had a `degraded` preflight
-because this session was loading the machine. Manual mode ignores the deferral,
-so all 27 plugins still ran, but no `--scheduled` run has yet been observed on
-an unloaded machine.
-
-- [x] PEAR was broken on this machine, independently of RocketUpdater: every
-      `pear`/`pecl` command died with
-      `Failed opening required 'Console/Getopt.php'`. Root cause was not a
-      missing package but a wrong `include_path`: Homebrew's php formula ships a
-      PEAR skeleton in `Cellar/php/8.5.10/share/php/pear` and php.ini points
-      there, while the real tree with `Console`, `Archive`, `Structures` and
-      `XML` lives in `/opt/homebrew/share/pear`. Fixed 2026-09-01 in plugin
-      v2.0.0 by resolving the real tree and exporting `PHP_PEAR_INSTALL_DIR`,
-      rather than editing the user's php.ini. A second failure surfaced behind
-      it: upgrading the `PEAR` package itself tries to replace the read-only
-      Cellar binaries `pear`, `peardev` and `pecl`, which can only end in
-      `permission denied (delete)` / `ERROR: commit failed`. Under a
-      Homebrew-managed PHP the plugin now leaves that package to
-      `brew upgrade php` and upgrades the rest individually. Verified: the real
-      plugin run now exits 0 after upgrading Archive_Tar, Console_Getopt,
-      Structures_Graph and XML_Util.
-- [x] `brewhealth` no longer fails on advisory output. Fixed 2026-09-01 in
-      plugin v2.0.0 with a severity split: `brew missing` (a formula whose
-      dependency is absent) fails the run, while `brew doctor` and the
-      autoremove preview are reported without failing, because `brew doctor` is
-      advisory by Homebrew's own definition and always has something to say on a
-      lived-in machine. The one real finding it had, `memo: fzf`, was repaired
-      by installing `fzf`; `brew missing` is now clean and the plugin exits 0.
-- [x] Decided 2026-09-01: leave Homebrew's post-install cleanup enabled.
-      `brew upgrade` removes the superseded Cellar version of a package it
-      replaces (`Removing: .../camsnap/0.4.1`), which is intrinsic to upgrading
-      rather than a decision about user data.
-      `HOMEBREW_NO_INSTALL_CLEANUP=1` would satisfy a literal reading of "zero
-      scheduled deletion" while growing the Cellar without bound, and no guard
-      here reclaims old kegs. README now states the nuance instead of leaving
-      the phrase to be misread.
-- [ ] Remaining `brew doctor` advisories, left deliberately because each is a
-      judgment call with real consequences: formulae `terraform` and `goplaces`
-      are deprecated, and kegs `goplaces`, `pillow`, `pydantic` are unlinked.
-      Do **not** blanket-`brew link` those: `pillow` and `pydantic` are commonly
-      left unlinked so they cannot shadow pip-installed versions, and linking
-      them can break a working Python environment. Smallest next step: decide
-      per keg whether anything needs it on `PATH`, and choose a replacement for
-      `terraform` (licence change) separately.
+  `postflight`; every brew invocation prints the warning on stderr, where it is
+  now harmless to the run. Only the tap owner can fix it. Next step: PR that tap
+  changing `postflight` to `postflight_steps` (pending the owner's go-ahead,
+  since it publishes under the personal GitHub account).
 
 ## Manual disk-reclamation decisions
 
