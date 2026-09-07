@@ -90,18 +90,37 @@
   the whole plugin while the real packages upgraded fine. Fixed by keeping
   stderr apart and filtering the names; covered by
   `tests/plugins/homebrew-warning-noise.sh`.
-- [ ] `HOMEBREW_NO_REQUIRE_TAP_TRUST` is deprecated ("Use `brew trust` for each
-  non-official tap"). Every brew call prints the warning. Next step: decide
-  whether to run `brew trust` once per third-party tap (openclaw, xdevplatform,
-  steipete, oven-sh, anomalyco, stripe) and drop the variable.
-- [ ] PEAR: every per-package `upgrade` still prints `sudo: a password is
-  required` before falling back. The fallback works; the noisy privileged
-  attempt should be skipped when sudo is known to be unavailable.
-- [ ] Docker/OrbStack report: `du` walks container overlay paths and emits
-  hundreds of `No such file or directory` / `Stale NFS file handle` lines. Next
-  step: send `du` stderr to /dev/null in the docker plugin's size report.
-- [ ] `brew doctor` reports unlinked kegs (`goplaces`, `pillow`, `pydantic`) and
-  keg-only leftovers (`terraform`, `goplaces`). Advisory only; decide manually.
+- [x] Homebrew upgraded exactly one formula and one cask per run and reported
+  success for the rest. `brew upgrade` reads stdin, and the loop fed the
+  outdated list on stdin, so the first upgrade drained the remaining names. The
+  list now arrives on fd 3; covered by `tests/plugins/homebrew-stdin-drain.sh`,
+  which fails against the old form. This is why 32 formulae stayed outdated
+  across runs that all reported success.
+- [x] `HOMEBREW_NO_REQUIRE_TAP_TRUST` dropped: the 20 installed third-party taps
+  are now trusted explicitly in `~/.homebrew/trust.json` via `brew trust --tap`
+  (3 were missing: ddev/ddev, gbevin/tools, stripe/stripe-cli). A tap installed
+  later is reported by brew instead of being trusted silently, which the blanket
+  variable never allowed.
+- [x] PEAR probes the grant once with `sudo -n true` and reports the reason once,
+  instead of one `sudo: a password is required` per package; an expiry mid-loop
+  also disables root for the remaining packages. Covered by
+  `tests/plugins/pear-sudo-probe.sh`.
+- [x] Docker/OrbStack report: `du` stderr no longer floods the run. Vanished
+  paths (live container overlays) are counted and reported as one line saying
+  the size is a lower bound.
+- [ ] `brew doctor` advisories, all deliberate decisions, none taken:
+  `goplaces` exists both as an old unlinked formula keg (0.4.3, May) and as the
+  installed cask that owns `/opt/homebrew/bin/goplaces` — the keg is dead weight
+  and `brew uninstall --formula goplaces` would remove it. `terraform` 1.5.7 is
+  still linked and working but its formula is gone (BUSL; upstream moved to
+  `hashicorp/tap`). `pillow` and `pydantic` are unlinked dependency kegs; do not
+  link them blindly, they collide with the Python site-packages.
+- [ ] `xdevplatform/homebrew-tap` Casks/xurl.rb:37 calls the deprecated
+  `postflight`. It is upstream noise on stderr, now harmless to the run. Next
+  step: open a PR on that tap changing it to `postflight_steps`.
+- [ ] `plugins/uvtools.sh` still feeds its tool list on the loop's stdin. `uv
+  tool upgrade` does not drain it today (all 7 tools upgraded in the 2026-09-07
+  run), so this is latent, not a bug; move it to fd 3 when that file is touched.
 
 ## Findings from the first full run (2026-09-01, 27 plugins, 5 minutes)
 
