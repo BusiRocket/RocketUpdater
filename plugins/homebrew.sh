@@ -81,6 +81,28 @@ run_node_formula_upgrade() {
     return "$upgrade_status"
 }
 
+# list_brew_outdated KIND prints one outdated package name per line. Homebrew
+# writes deprecation and tap warnings to stderr, so stderr is kept apart from
+# the name list: merging them made the plugin try to upgrade a warning line.
+list_brew_outdated() {
+    local kind=$1
+    local stderr_file=$2
+    local names
+    local status
+
+    names=$(brew outdated "--$kind" --quiet 2>"$stderr_file")
+    status=$?
+
+    if [ "$status" -ne 0 ]; then
+        return "$status"
+    fi
+
+    # A package name is a single token, optionally tap-qualified. Anything else
+    # is stray output and must never reach brew upgrade.
+    printf '%s\n' "$names" | grep -E '^[A-Za-z0-9@._+-]+(/[A-Za-z0-9@._+-]+){0,2}$' || true
+    return 0
+}
+
 update_homebrew() {
     if ! check_homebrew; then
         echo_skip "Homebrew is not installed"
@@ -104,9 +126,12 @@ update_homebrew() {
     fi
 
     echo_info 'Homebrew: Enumerating outdated formulae...'
+    local brew_stderr
+    brew_stderr=$(mktemp -t rocketupdater-brew-outdated) || return 1
     local outdated_formulae
-    if ! outdated_formulae=$(brew outdated --formula --quiet 2>&1); then
-        printf '%s\n' "$outdated_formulae"
+    if ! outdated_formulae=$(list_brew_outdated formula "$brew_stderr"); then
+        cat "$brew_stderr"
+        /bin/rm -f -- "$brew_stderr"
         echo_error "Homebrew could not enumerate outdated formulae"
         return 1
     fi
@@ -128,11 +153,13 @@ update_homebrew() {
 
     echo_info 'Homebrew: Enumerating outdated casks...'
     local outdated_casks
-    if ! outdated_casks=$(brew outdated --cask --quiet 2>&1); then
-        printf '%s\n' "$outdated_casks"
+    if ! outdated_casks=$(list_brew_outdated cask "$brew_stderr"); then
+        cat "$brew_stderr"
+        /bin/rm -f -- "$brew_stderr"
         echo_error "Homebrew could not enumerate outdated casks"
         return 1
     fi
+    /bin/rm -f -- "$brew_stderr"
 
     while IFS= read -r item; do
         [ -n "$item" ] || continue
