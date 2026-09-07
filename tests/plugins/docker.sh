@@ -75,4 +75,45 @@ if [ "$REPORT_STATUS" -ne 1 ]; then
     exit 1
 fi
 
+# Case 4: `du` errors on live container overlays are counted, not printed. A
+# real run drowned in hundreds of "No such file or directory" lines.
+mkdir -p "$FIXTURE_DIR/home/OrbStack/containers"
+cat >"$FIXTURE_DIR/bin/du" <<'EOF'
+#!/bin/bash
+printf 'du: %s/containers/gone: No such file or directory\n' "$2" >&2
+printf 'du: %s/containers/stale: Stale NFS file handle\n' "$2" >&2
+printf '25G\t%s\n' "$2"
+exit 0
+EOF
+chmod +x "$FIXTURE_DIR/bin/du"
+
+: >"$STATE_DIR/docker.log"
+set +e
+run_report
+REPORT_STATUS=$?
+set -e
+
+if [ "$REPORT_STATUS" -ne 0 ]; then
+    cat "$STATE_DIR/output"
+    echo "RED docker plugin: du errors made the report fail"
+    exit 1
+fi
+
+if grep -q 'No such file or directory' "$STATE_DIR/output" ||
+    grep -q 'Stale NFS file handle' "$STATE_DIR/output"; then
+    echo "RED docker plugin: raw du errors reached the run output"
+    exit 1
+fi
+
+if ! grep -q '2 paths under .* vanished while measuring' "$STATE_DIR/output"; then
+    echo "RED docker plugin: the unreadable paths were not reported as a count"
+    cat "$STATE_DIR/output"
+    exit 1
+fi
+
+if ! grep -q '25G' "$STATE_DIR/output"; then
+    echo "RED docker plugin: the measured size is missing from the report"
+    exit 1
+fi
+
 echo "docker plugin contract passed"

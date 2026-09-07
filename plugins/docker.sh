@@ -30,12 +30,24 @@ report_docker() {
         orbctl status 2>&1 || echo_warning "OrbStack status was unavailable"
     fi
 
+    # `du` walks live container overlays, where paths vanish between readdir and
+    # stat ("No such file or directory", "Stale NFS file handle"). Those lines
+    # are not findings and drowned the whole run, so count them instead: they
+    # mean the reported size is a lower bound.
     local orbstack_root
+    local du_errors
+    local unreadable
+    du_errors=$(mktemp -t rocketupdater-docker-du) || return 1
     for orbstack_root in "$HOME/.orbstack" "$HOME/OrbStack"; do
         if [ -d "$orbstack_root" ]; then
-            du -sh "$orbstack_root" 2>&1
+            du -sh "$orbstack_root" 2>"$du_errors"
+            unreadable=$(grep -c . "$du_errors" | tr -d ' ')
+            if [ "$unreadable" -gt 0 ]; then
+                echo_info "Docker: $unreadable paths under $orbstack_root vanished while measuring; the size above is a lower bound"
+            fi
         fi
     done
+    /bin/rm -f -- "$du_errors"
 
     return 0
 }
