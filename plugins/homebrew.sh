@@ -110,10 +110,11 @@ update_homebrew() {
     fi
 
     export HOMEBREW_NO_ASK=1
-    # The user installs their own third-party taps deliberately. Skip Homebrew's
-    # tap-trust prompts so update/upgrade process them instead of flooding the
-    # run with "tap is not trusted" warnings and silently skipping formulae.
-    export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
+    # The user installs their own third-party taps deliberately, but the blanket
+    # HOMEBREW_NO_REQUIRE_TAP_TRUST is deprecated and printed a warning on every
+    # brew call. Trust is now recorded per tap in ~/.homebrew/trust.json via
+    # `brew trust --tap`; a tap added later is reported here rather than trusted
+    # silently, which is the point of the supported mechanism.
     # Only these casks auto-update themselves in ways worth overriding; a
     # blanket --greedy retries deterministic postflight failures forever.
     export HOMEBREW_UPGRADE_GREEDY_CASKS="codexbar goplaces"
@@ -138,8 +139,12 @@ update_homebrew() {
 
     # Upgrade one item at a time so one broken formula or cask cannot mask or
     # abort the rest, and never retry a deterministic upgrade failure.
+    #
+    # The list is fed on fd 3, not stdin: `brew upgrade` reads stdin and drained
+    # the rest of the list, so a run upgraded one package and then behaved as if
+    # the remaining ones were already done.
     local item
-    while IFS= read -r item; do
+    while IFS= read -r item <&3; do
         [ -n "$item" ] || continue
         echo_info "Homebrew: Upgrading formula $item..."
         if [ "$item" = node ]; then
@@ -149,7 +154,7 @@ update_homebrew() {
         elif ! run_brew_step "Upgrade of formula $item" 1 brew upgrade --formula "$item"; then
             failed_items="$failed_items $item"
         fi
-    done <<<"$outdated_formulae"
+    done 3<<<"$outdated_formulae"
 
     echo_info 'Homebrew: Enumerating outdated casks...'
     local outdated_casks
@@ -161,14 +166,14 @@ update_homebrew() {
     fi
     /bin/rm -f -- "$brew_stderr"
 
-    while IFS= read -r item; do
+    while IFS= read -r item <&3; do
         [ -n "$item" ] || continue
         echo_info "Homebrew: Upgrading cask $item..."
         if ! run_brew_step "Upgrade of cask $item" 1 \
             brew upgrade --cask --no-ask --no-quit "$item"; then
             failed_items="$failed_items $item"
         fi
-    done <<<"$outdated_casks"
+    done 3<<<"$outdated_casks"
 
     if [ -n "$failed_items" ]; then
         echo_error "Homebrew items failed:$failed_items"
