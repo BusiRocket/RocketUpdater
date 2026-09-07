@@ -283,11 +283,12 @@ start_sudo_keepalive() {
         sleep 60
         kill -0 "$$" 2>/dev/null || exit 0
         sudo -n -v 2>/dev/null || exit 0
-    done &
+    done 2>/dev/null &
     SUDO_KEEPALIVE_PID=$!
-    # Detach it from job control. Otherwise killing it at the end of a
-    # non-interactive run makes bash print "Terminated: 15  sleep 60" into the
-    # log, which reads like a failure and is only the keepalive shutting down.
+    # The subshell's own stderr is discarded and the job is detached: stopping
+    # the keepalive kills the `sleep` it is parked in, and a non-interactive
+    # bash reports that as "Terminated: 15  sleep 60", which reads in the log
+    # like a failed step instead of an orderly shutdown.
     disown "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
 }
 
