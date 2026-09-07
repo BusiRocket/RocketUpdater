@@ -237,9 +237,18 @@ request_sudo_access() {
         return 0
     fi
 
-    # A manual run without a terminal cannot obtain a grant safely. Do not
-    # probe or prompt: continue with the unprivileged plugin paths instead.
+    # A manual run without a terminal cannot *prompt*, but it can still use a
+    # grant that needs no prompt: `sudo -n` never asks, it fails. A host with a
+    # NOPASSWD rule (the Mac mini) therefore keeps the privileged paths over
+    # ssh, where the old early return made PEAR fail on root-owned files.
     if [ ! -t 0 ]; then
+        if sudo -n true 2>/dev/null; then
+            SUDO_AVAILABLE=true
+            start_sudo_keepalive
+            echo_info "Root access is available without a prompt; privileged steps stay enabled."
+            return 0
+        fi
+
         echo_warning "No terminal available for a sudo prompt; continuing without root."
         return 0
     fi
