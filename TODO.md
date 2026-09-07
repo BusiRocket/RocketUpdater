@@ -83,6 +83,40 @@
       10.14 GB / 423 / 4 when it was cancelled, confirming the cancelled run
       under-reported) and the plugin exits 0.
 
+## Findings from the first Mac mini run (2026-09-08)
+
+`main` is now the only branch here and on GitHub; the Mac mini
+(`Mac-mini-de-Cristian.local`, 192.168.1.65) was synced to it and ran the full
+27 plugins over ssh. First result: 22 successful, 2 failed, 3 skipped. After the
+fixes below the same run is 24 successful, 0 failed, 3 skipped (docker daemon
+down, bun and platformio not installed), 733 lines, no noise of any kind.
+
+- [x] `pear` failed on the mini only: 141 files under `/opt/homebrew/share/pear`
+  were root-owned, left by earlier `sudo pear` runs, so every package ended in
+  `permission denied (delete)` / `ERROR: commit failed`. The laptop had 0 such
+  files, which is why it never showed. Fixed on the host with
+  `sudo chown -R cristiandeluxe:admin /opt/homebrew/share/pear`.
+- [x] The deeper cause was in the runner: a manual run over ssh has no terminal,
+  and it skipped sudo entirely. But `sudo -n` never prompts, it fails, and the
+  mini has `NOPASSWD: ALL`, so the grant was there to be used. The no-terminal
+  path now probes with `sudo -n true` and keeps the privileged steps when it
+  succeeds. Scheduled mode is untouched. Covered by
+  `tests/runner/sudo-nopasswd.sh`.
+- [x] With the keepalive now running in non-interactive runs, stopping it made
+  bash print `Terminated: 15  sleep 60` into the log, which reads like a failed
+  step. The keepalive is disowned and its stderr discarded.
+- [x] `brewhealth` failed on the mini: `brew missing` reported `memo: fzf`, a
+  real missing dependency of the installed `antoniorodr/memo` formula. Installed
+  `fzf`; `brew missing` is now empty there.
+- [ ] Mini-only `brew doctor` advisories, left alone: four Caskroom directories
+  have invalid metadata (`google-chrome`, `orbstack`, `gcloud-cli`,
+  `responsively`) and cannot be upgraded until
+  `brew reinstall --cask --force <name>`, which restarts those apps — do it at a
+  moment when Chrome and OrbStack can go down. Also an unlinked `yarn` 1.22.22
+  keg, correct as it stands: `/opt/homebrew/bin/yarn` is corepack's shim and
+  serves yarn 4.14.1. Unbrewed dylibs in `/usr/local/lib` are third-party
+  installers, not Homebrew's business.
+
 ## Findings from the run of 2026-09-07
 
 - [x] Homebrew: `brew outdated` was captured with `2>&1`, so deprecation and tap
