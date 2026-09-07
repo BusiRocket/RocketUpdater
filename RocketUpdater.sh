@@ -285,6 +285,10 @@ start_sudo_keepalive() {
         sudo -n -v 2>/dev/null || exit 0
     done &
     SUDO_KEEPALIVE_PID=$!
+    # Detach it from job control. Otherwise killing it at the end of a
+    # non-interactive run makes bash print "Terminated: 15  sleep 60" into the
+    # log, which reads like a failure and is only the keepalive shutting down.
+    disown "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
 }
 
 stop_sudo_keepalive() {
