@@ -108,14 +108,20 @@ down, bun and platformio not installed), 733 lines, no noise of any kind.
 - [x] `brewhealth` failed on the mini: `brew missing` reported `memo: fzf`, a
   real missing dependency of the installed `antoniorodr/memo` formula. Installed
   `fzf`; `brew missing` is now empty there.
-- [ ] Mini-only `brew doctor` advisories, left alone: four Caskroom directories
-  have invalid metadata (`google-chrome`, `orbstack`, `gcloud-cli`,
-  `responsively`) and cannot be upgraded until
-  `brew reinstall --cask --force <name>`, which restarts those apps — do it at a
-  moment when Chrome and OrbStack can go down. Also an unlinked `yarn` 1.22.22
-  keg, correct as it stands: `/opt/homebrew/bin/yarn` is corepack's shim and
-  serves yarn 4.14.1. Unbrewed dylibs in `/usr/local/lib` are third-party
-  installers, not Homebrew's business.
+- [x] Mini-only `brew doctor` advisories cleared on 2026-09-08. Four casks had a
+  `.metadata` directory but no version directory, so Homebrew could not upgrade
+  them: `google-chrome` (now 152.0.7977.83), `gcloud-cli` (583.0.0, its `latest`
+  symlink had been dangling at 579.0.0), `orbstack` (2.2.3; no containers
+  existed, and it was running again straight after) and `responsively` (1.18.0).
+  The `yarn` 1.22.22 formula was uninstalled: nothing depended on it, it was
+  unlinked, and `/opt/homebrew/bin/yarn` is corepack's shim serving 4.14.1,
+  which still works and still upgrades through the yarn plugin.
+- [-] Unbrewed dylibs in `/usr/local/lib` on the mini: keep them. `pkgutil`
+  names the owners — `libEioPal`, `libTCMsgSrv2` and `libTCMsgSvr2` belong to
+  `com.tcelectronic.pkg.TCAudioInterfaceSoftware` (the audio interface driver),
+  `libcpsrt` to `com.wibu.cmdriver` (CodeMeter licensing), and `libext2fs` to an
+  ext2/3/4 filesystem installer. Homebrew only warns because it did not put them
+  there; deleting them breaks audio hardware and licence dongles.
 
 ## Findings from the run of 2026-09-07
 
