@@ -83,6 +83,26 @@
       10.14 GB / 423 / 4 when it was cancelled, confirming the cancelled run
       under-reported) and the plugin exits 0.
 
+## Findings from the run of 2026-09-07
+
+- [x] Homebrew: `brew outdated` was captured with `2>&1`, so deprecation and tap
+  warnings entered the outdated list and were passed to `brew upgrade`, failing
+  the whole plugin while the real packages upgraded fine. Fixed by keeping
+  stderr apart and filtering the names; covered by
+  `tests/plugins/homebrew-warning-noise.sh`.
+- [ ] `HOMEBREW_NO_REQUIRE_TAP_TRUST` is deprecated ("Use `brew trust` for each
+  non-official tap"). Every brew call prints the warning. Next step: decide
+  whether to run `brew trust` once per third-party tap (openclaw, xdevplatform,
+  steipete, oven-sh, anomalyco, stripe) and drop the variable.
+- [ ] PEAR: every per-package `upgrade` still prints `sudo: a password is
+  required` before falling back. The fallback works; the noisy privileged
+  attempt should be skipped when sudo is known to be unavailable.
+- [ ] Docker/OrbStack report: `du` walks container overlay paths and emits
+  hundreds of `No such file or directory` / `Stale NFS file handle` lines. Next
+  step: send `du` stderr to /dev/null in the docker plugin's size report.
+- [ ] `brew doctor` reports unlinked kegs (`goplaces`, `pillow`, `pydantic`) and
+  keg-only leftovers (`terraform`, `goplaces`). Advisory only; decide manually.
+
 ## Findings from the first full run (2026-09-01, 27 plugins, 5 minutes)
 
 First result: 23 successful, 2 failed, 2 skipped, runner exit 1. Preflight was
