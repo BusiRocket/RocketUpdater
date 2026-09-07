@@ -315,7 +315,7 @@ if [ "$PEAR_FALLBACK_EXIT_CODE" -ne 0 ]; then
     exit 1
 fi
 
-if ! grep -q "privileged 'upgrade' failed; retrying without sudo" "$PEAR_FALLBACK_OUTPUT"; then
+if ! grep -q "retrying without sudo" "$PEAR_FALLBACK_OUTPUT"; then
     echo "A failing privileged pear command did not fall back to an unprivileged retry"
     cat "$PEAR_FALLBACK_OUTPUT"
     exit 1

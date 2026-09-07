@@ -86,6 +86,36 @@ run_pecl_command() {
 # discarding it makes "retrying without sudo" impossible to act on, since it
 # looks identical whether sudo was refused, the ticket expired, or the command
 # itself errored.
+# The run-wide grant is not proof that this plugin can use it: plugins run
+# under `timeout` with stdin closed, and a `sudo -n` there can still be refused.
+# Probe once and remember the answer, so a refusal costs one warning instead of
+# one "sudo: a password is required" per package. The answer lives in a global
+# set on first use; plugin files may not run statements at the top level, so it
+# is read with a default instead of being initialised there.
+sudo_usable() {
+    if [ -n "${PEAR_SUDO_USABLE:-}" ]; then
+        [ "$PEAR_SUDO_USABLE" = yes ]
+        return $?
+    fi
+
+    if [ "${SUDO_AVAILABLE:-false}" != true ]; then
+        PEAR_SUDO_USABLE=no
+        return 1
+    fi
+
+    local probe_output
+    if probe_output=$(sudo -n true 2>&1); then
+        PEAR_SUDO_USABLE=yes
+        return 0
+    fi
+
+    PEAR_SUDO_USABLE=no
+    # Say why: refused, expired, and "command errored" look identical otherwise.
+    echo_warning "PEAR: the run's root grant is not usable here; retrying without sudo for every package."
+    printf '%s\n' "$probe_output" | grep -v '^$' | head -2
+    return 1
+}
+
 run_privileged() {
     local label=$1
     local tool=$2
@@ -93,14 +123,24 @@ run_privileged() {
     shift 3
     local output
 
-    if [ "${SUDO_AVAILABLE:-false}" = true ]; then
+    if sudo_usable; then
         if output=$(sudo -n "$tool" "$cmd" "$@" 2>&1); then
             printf '%s\n' "$output" | filter_php_noise
             return 0
         fi
 
-        echo_warning "$label: privileged '$cmd' failed; retrying without sudo..."
-        printf '%s\n' "$output" | filter_php_noise | grep -v '^$' | head -3
+        # An expired ticket mid-loop looks like a per-package failure; stop
+        # retrying root for the rest of the plugin once sudo asks for a password.
+        case $output in
+        *'a password is required'* | *'no askpass program'*)
+            PEAR_SUDO_USABLE=no
+            echo_warning "$label: the root grant expired; the remaining packages upgrade unprivileged."
+            ;;
+        *)
+            echo_warning "$label: privileged '$cmd' failed; retrying without sudo..."
+            printf '%s\n' "$output" | filter_php_noise | grep -v '^$' | head -3
+            ;;
+        esac
     fi
 
     run_filtered "$tool" "$cmd" "$@"
