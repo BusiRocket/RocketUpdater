@@ -451,8 +451,8 @@ Atrium stays untouched by the owner's decision, index growth included.
      2.1.3, and helm itself (v4.2.4) still lists both plugins.
 
   The defect in `helm-diff`'s installer is still there and still worth knowing —
-  its `installFile` claims to verify a SHA256 and does not. Do the same manual
-  check on the next update rather than trusting the comment.
+  its `installFile` claims to verify a SHA256 and does not. That manual check is
+  now automated, so it no longer depends on anyone remembering it.
 
   Original review — the finding that made this a decision:
   Sources are the legitimate upstreams (`databus23/helm-diff`,
@@ -465,6 +465,41 @@ Atrium stays untouched by the owner's decision, index growth included.
   downloads a release tarball and installs it unverified. That is not a
   maintenance step to take unattended; it is a decision about trusting a
   download.
+- [x] Helm checksum verification automated 2026-09-08, replacing the by-hand
+  procedure recorded above. `plugins/helm.sh` v1.1.0 now verifies every
+  installed plugin binary on each run through four libraries:
+  `helm_plugin_release_source` names the release assets for a plugin and
+  platform, `helm_reference_digest` fetches the published checksums, confirms
+  the archive against them and streams the archived binary into `shasum`,
+  `find_helm_plugin_directory` maps a declared plugin name to its installation
+  directory (they differ — `dashboard` installs into `helm-dashboard.git`), and
+  `classify_helm_plugin_binary` compares the two digests.
+
+  Three outcomes, deliberately distinct. `verified` is a byte-identical match.
+  `mismatch` fails the plugin and prints both digests so the finding can be
+  reproduced by hand. `unverifiable` only warns — an unreachable or corrupt
+  download says nothing about the installed file, and failing the run on it is
+  how a verification step becomes noise people learn to ignore.
+
+  Two properties are worth keeping in mind. Nothing is ever extracted to disk:
+  the archive member is streamed into `shasum`, so an archive that fails its
+  checksum never becomes a file, and no recursive delete is needed — which is
+  what `tests/runner/cleanup-safety.sh` demands. And the reference digest is
+  cached per plugin and version, because the archives are 78 MiB and 71 MiB and
+  the answer cannot change for a released version; a warm run is one local hash.
+
+  Evidence — `./scripts/test-regressions.sh` is green (29 contracts), and the
+  real run reproduces the hand-verified digests recorded above exactly:
+  `diff` → `0fff52a0...6e6a9cd`, `dashboard` → `01faebb0...d737630`.
+
+  The wiring mistake this cost is the part worth remembering: the libraries were
+  sourced in `RocketUpdater.sh`, but plugins execute in
+  `scripts/run-plugin.sh`, which loads its own list. Every helper worked, the
+  runner loaded none of them, and the plugin reported "no plugins to verify" and
+  exited 0 — a pass meaning the opposite of what it said. The tests had
+  hand-sourced the libraries and so could not see it.
+  `tests/plugins/helm-checksum-verified.sh` now drives `scripts/run-plugin.sh`
+  instead, and fails if the runner stops loading them.
 - [-] Cargo registry/src wholesale deletion — rejected. There are 491 extracted
   package trees with no matching local crate archive. A future selective tool
   may consider only exact source/archive matches while Rust processes are

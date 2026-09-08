@@ -53,6 +53,14 @@ source "$ROOT_DIR/lib/snapshot_global_npm_packages.sh" || exit 78
 source "$ROOT_DIR/lib/compare_global_npm_snapshots.sh" || exit 78
 # shellcheck source=../lib/list_sparkle_obsolete_candidates.sh
 source "$ROOT_DIR/lib/list_sparkle_obsolete_candidates.sh" || exit 78
+# shellcheck source=../lib/helm_plugin_release_source.sh
+source "$ROOT_DIR/lib/helm_plugin_release_source.sh" || exit 78
+# shellcheck source=../lib/helm_reference_digest.sh
+source "$ROOT_DIR/lib/helm_reference_digest.sh" || exit 78
+# shellcheck source=../lib/find_helm_plugin_directory.sh
+source "$ROOT_DIR/lib/find_helm_plugin_directory.sh" || exit 78
+# shellcheck source=../lib/classify_helm_plugin_binary.sh
+source "$ROOT_DIR/lib/classify_helm_plugin_binary.sh" || exit 78
 # shellcheck source=/dev/null
 source "$PLUGIN_FILE" || exit $?
 

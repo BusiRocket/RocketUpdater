@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Helm plugin checksum verification (`plugins/helm.sh` v1.1.0). Every installed
+  helm plugin binary is proved byte-identical to the release the project
+  published: the checksums file is fetched, the release archive is confirmed
+  against it, and only then is the archived binary streamed into `shasum` and
+  compared with what is installed. This is the check `helm-diff`'s own
+  `install-binary.sh` claims in a comment to perform and does not. A mismatch
+  fails the plugin; a download that cannot be verified warns instead, because a
+  network failure says nothing about the installed file. Verified references
+  are cached per plugin and version under
+  `~/Library/Caches/RocketUpdater/helm-references`, so a steady-state run costs
+  one local hash rather than a re-download.
 - Launchd-safe runner: native `lockf` single-instance locking, static plugin
   metadata validation without executing plugin code, per-plugin child
   processes with bounded timeouts, structured 0600 event logging, and a
