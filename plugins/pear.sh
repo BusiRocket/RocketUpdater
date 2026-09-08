@@ -103,6 +103,21 @@ sudo_usable() {
         return 1
     fi
 
+    # Root is for a system PEAR the user cannot write. On a Homebrew tree the
+    # user owns, upgrading as root rewrites those files as root-owned, and the
+    # next run without a grant — a scheduled one always runs without it — then
+    # fails with "permission denied (delete)". That is exactly how the Mac mini
+    # ended up with 141 root-owned files under /opt/homebrew/share/pear.
+    local install_dir=${PHP_PEAR_INSTALL_DIR:-}
+    if [ -z "$install_dir" ]; then
+        install_dir=$(pear config-get php_dir 2>/dev/null)
+    fi
+    if [ -n "$install_dir" ] && [ -w "$install_dir" ]; then
+        PEAR_SUDO_USABLE=no
+        echo_info "PEAR: $install_dir is writable by this user; upgrading without root."
+        return 1
+    fi
+
     local probe_output
     if probe_output=$(sudo -n true 2>&1); then
         PEAR_SUDO_USABLE=yes
