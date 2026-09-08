@@ -400,10 +400,30 @@ Atrium stays untouched by the owner's decision, index growth included.
   webCacheStorage; review deno clean --dry-run before any manual clean.
 - [ ] Bun cache — current 21 MiB. Decision: no action unless growth makes
   re-download cost worthwhile.
-- [ ] pip user packages — decision: verify which scripts import user-site lxml
-  and pandas before any unbounded upgrade.
-- [ ] Helm plugins — decision: review the diff and dashboard update scripts,
-  source URLs, and checksums before running plugin hooks manually.
+- [x] pip user packages — audited 2026-09-08, and they stay. `lxml` 6.1.1 and
+  `pandas` 3.0.3 in `~/Library/Python/3.14/lib/python/site-packages` are live
+  dependencies, not leftovers: `brain/tools/caixabank/convertCardXls.py` and
+  `brain/tools/forense/{analyze,classify}.py` import pandas (analyze also
+  numpy), and the docx/xlsx skill validators under `rocket-agents-library`
+  import lxml. No old-pandas API use turned up in those scripts — the `.append(`
+  hits are reportlab story lists, not DataFrames. The item's real point stands:
+  never upgrade these unbounded, because the consumers are financial and
+  forensic scripts whose output nobody re-checks by hand.
+- [x] Helm plugin directory cleaned 2026-09-08: `~/Library/helm/plugins` held
+  eight **dangling symlinks** from April — six `skaffold-render*` and two `tmp.*`
+  pointing into `/var/folders/.../T/` paths macOS has long since cleared. Only
+  the links were removed; `helm plugin list` still reports both real plugins.
+- [ ] Helm plugin updates stay the owner's call, and the review changed why.
+  Sources are the legitimate upstreams (`databus23/helm-diff`,
+  `komodorio/helm-dashboard`) over HTTPS, and both are behind: diff 3.14.1
+  against 3.15.12, dashboard 2.0.3 against 2.1.3. But `helm-diff`'s
+  `install-binary.sh` **does not verify anything**: its `installFile` comment
+  says "verifies the SHA256 for the file" and the function only untars and
+  copies, with no checksum fetched or compared — a leftover comment from the
+  template it was copied from. So `helm plugin update diff` runs a script that
+  downloads a release tarball and installs it unverified. That is not a
+  maintenance step to take unattended; it is a decision about trusting a
+  download.
 - [-] Cargo registry/src wholesale deletion — rejected. There are 491 extracted
   package trees with no matching local crate archive. A future selective tool
   may consider only exact source/archive matches while Rust processes are
