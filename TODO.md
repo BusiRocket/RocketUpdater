@@ -211,12 +211,20 @@ archives.
   meaningful saving is the 3.2 GiB `.mem` suspended state, released by resuming
   the VM and shutting Windows down properly instead of leaving it suspended —
   the owner's call, since it discards the saved session.
-- [ ] Steam — 61 GiB across six titles, re-downloadable: a UI uninstall of the
-  titles the owner picks, not an archive. The two Witcher installs alone are
-  32.6 GiB.
-- [ ] Offer standing: copy the Parallels VM to the mini as a safety copy while
-  keeping it local. It is 57 GiB against 2.5 TiB free there, and it is the only
-  Windows on any machine here with no backup of any kind.
+### Waiting on the owner, not on work
+
+Three items are parked deliberately: the owner will decide them later, and
+nothing else should touch them in the meantime.
+
+- [ ] Steam — 61 GiB across six titles, re-downloadable, so a UI uninstall of
+  whichever titles the owner picks rather than an archive. The two Witcher
+  installs alone are 32.6 GiB.
+- [ ] The Parallels `.mem` suspended state — 3.2 GiB, released by resuming the
+  VM and shutting Windows down properly. It discards the session saved on
+  21 June, which is why it is the owner's call and not a maintenance step.
+- [ ] Standing offer: copy the Parallels VM to the mini as a safety copy while
+  keeping it local. 57 GiB against 2.5 TiB free there. It gains no space; it
+  gains the only existing copy of the only Windows on any machine here.
 
 Atrium stays untouched by the owner's decision, index growth included.
 
