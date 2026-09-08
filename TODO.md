@@ -240,6 +240,24 @@ nothing lost that cannot be rebuilt or restored from the mini's archive.
   The same goes for the Deno (138 MB) and Bun (172 MB) caches, which are not
   worth the review.
 
+### End-of-session verification (2026-09-08)
+
+Full manual run after every change of the day: 27 plugins, 25 successful,
+0 failed, 2 skipped, exit 0, 602 lines of log. None of the noise this session
+started with appears in it — no `No such file or directory`, no `Stale NFS`, no
+`a password is required`, no `Terminated: 15`, no tap-trust deprecation, no
+`No available formula with the name "warning: ..."`.
+
+Two of the day's fixes can be read directly in that log. Preflight recorded
+`load=263.59 cpus=16 cpu_idle=0.0` — genuine saturation, correctly identified by
+the measured-idle gate rather than by the load alone, and reported as degraded
+while manual mode still ran the work. PEAR printed `its install directory is
+writable by this user; upgrading without root`, so it no longer creates the
+root-owned files that broke the Mac mini.
+
+Suite and shellcheck green on both machines at `0f97f1b`. The MacBook ended the
+session at 231 GiB free, from 153 GiB.
+
 ### Waiting on the owner, not on work
 
 Three items are parked deliberately: the owner will decide them later, and
