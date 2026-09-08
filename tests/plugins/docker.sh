@@ -116,4 +116,36 @@ if ! grep -q '25G' "$STATE_DIR/output"; then
     exit 1
 fi
 
+# Case 5: a hung daemon must be given up on quickly. `docker info` has no
+# connect timeout of its own; against a dead daemon it took 86 seconds before
+# the plugin could skip, and a scheduled run paid that every night.
+cat >"$FIXTURE_DIR/bin/docker" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$*" >>"$PLUGIN_TEST_STATE/docker.log"
+if [ "$*" = "info" ]; then
+    sleep 120
+fi
+exit 0
+EOF
+chmod +x "$FIXTURE_DIR/bin/docker"
+
+: >"$STATE_DIR/docker.log"
+STARTED_AT=$(date +%s)
+set +e
+run_report
+REPORT_STATUS=$?
+set -e
+ELAPSED=$(($(date +%s) - STARTED_AT))
+
+if [ "$REPORT_STATUS" -ne 20 ]; then
+    cat "$STATE_DIR/output"
+    echo "RED docker plugin: a hung daemon did not skip with status 20"
+    exit 1
+fi
+
+if [ "$ELAPSED" -gt 30 ]; then
+    echo "RED docker plugin: the hung daemon was waited on for ${ELAPSED}s; it must be bounded"
+    exit 1
+fi
+
 echo "docker plugin contract passed"

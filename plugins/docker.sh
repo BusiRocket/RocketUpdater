@@ -9,8 +9,13 @@ PLUGIN_SCHEDULE_ACTION=report
 # Report-only: container, image, volume, network, and build-cache removal is a
 # separate human decision recorded in TODO.md, never a scheduled operation.
 
+# `docker info` has no connect timeout on this path: against a dead daemon it
+# took 86 seconds in the 2026-09-01 canary before the plugin could skip, and a
+# scheduled run pays that every night for nothing. Bound it with the coreutils
+# timeout that preflight already requires.
 check_docker() {
-    command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+    command -v docker >/dev/null 2>&1 || return 1
+    /opt/homebrew/bin/timeout --kill-after=5s 10s docker info >/dev/null 2>&1
 }
 
 report_docker() {

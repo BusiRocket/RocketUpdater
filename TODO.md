@@ -3,8 +3,9 @@
 > Created 2026-08-22 from cross-project filings. States: `[ ]` pending, `[~]` partial,
 > `[!]` blocked, `[x]` done, `[-]` obsolete.
 
-- [ ] Commit or discard the untracked `.serena/` state in this checkout (also referenced from
-      `~/p/osseus/TODO.md`; closing it here closes it there).
+- [x] `.serena/` is local language-server state, not project content: added to
+      `.gitignore` on 2026-09-08, so both checkouts stop reporting it as
+      untracked (this also closes the copy in `~/p/osseus/TODO.md`).
 - [ ] Optional hygiene: tracked shell scripts carry U+FE0F (emoji variation selector-16 in echo
       strings; originally `RocketUpdater.sh`, `lib/bash_colors.sh` (since retired),
       `scripts/format.sh`, `scripts/lint.sh`; `lib/print_message.sh` inherited the emoji).
@@ -41,13 +42,10 @@
       scheduled mode on 2026-09-01. The Task 3.4 gate passed: exit 0; the run's
       only events were run_start, preflight ready, run_end success; logs 0600;
       directory 0700; empty stderr; no ANSI escape; no surviving child.
-- [ ] `report_docker` spends about 86 seconds reaching a dead daemon before
-      skipping. Observed in the 2026-09-01 canary (`plugin_end docker skipped`
-      with duration 86) while OrbStack was not running: the Docker CLI has no
-      connect timeout on this path, so every scheduled run pays that minute and
-      a half for nothing. It is correct, just slow. Cheapest fix is bounding the
-      existing `docker info` gate with the coreutils timeout already required by
-      preflight, rather than reimplementing the gate.
+- [x] `report_docker` no longer waits about 86 seconds on a dead daemon: the
+      `docker info` gate is bounded with the coreutils timeout preflight already
+      requires (10s, `--kill-after=5s`). Covered by `tests/plugins/docker.sh`,
+      whose hung-daemon case takes 10s with the bound and 121s without it.
 - [~] Task 3.5 supervised canary — first execution was **not representative**,
       and the deferral that made it so was correct rather than a false positive.
       The machine was genuinely saturated: 1-minute load 56-62 against 16

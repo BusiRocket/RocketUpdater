@@ -2,3 +2,6 @@
 .idea
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+
+# Serena language-server cache and project state
+/.serena/
