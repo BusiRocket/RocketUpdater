@@ -175,6 +175,35 @@ down, bun and platformio not installed), 733 lines, no noise of any kind.
   support yet — tracked upstream in goreleaser/goreleaser#6870, open. Blocked on
   that issue; a patch to either repo would be overwritten by the next release.
 
+## Archived to the Mac mini instead of deleted (2026-09-08)
+
+The owner's decision: with no Time Machine destination on the MacBook and
+terabytes free on the mini, the heavy items move to
+`/Volumes/Datos18TB/Archivo/macbook-2026-09-08` as archive and can be processed
+there later. 62 GiB now sit on the mini; the MacBook went from 153 GiB free to
+206 GiB.
+
+Each item was streamed as a tar over ssh, with the sha256 of the same byte
+stream computed on both ends and the archive listed on the mini before anything
+local was removed. Hashes and a restore table are in `LEEME.md` beside the
+archives.
+
+- [x] `~/Backups/nova-account-closures-2026-08` (6.81 GB) and
+  `~/Backups/webcafeina-orphan-docroots-2026-08-24` (4.42 GB) — the two archives
+  Codex correctly refused to see deleted: sole copies of closed hosting accounts.
+- [x] The local iOS backup of 2026-07-04 (9.46 GB), `~/.cache/whisper` (6.72 GB),
+  the `midia-test` AVD (3.43 GB), Cursor's `state.vscdb.backup` of 15 May
+  (6.43 GB) and the July plugin rollback (440 MB).
+- [x] `~/.ollama/models` (28.78 GB) archived whole, then only `qwen3.5:35b-mlx`
+  removed locally (21 GB). `qwen3.5-opencode` stays installed: it is a local
+  derivative in no registry, and the archive is its only other copy.
+- [ ] Still on the MacBook, pending the owner's call: the Parallels Windows 11
+  VM (57 GiB, suspended since 21 June — archiving it frees the single largest
+  block) and the Steam library (61 GiB across six titles, re-downloadable, so a
+  UI uninstall rather than an archive).
+
+Atrium stays untouched by the owner's decision, index growth included.
+
 ## Manual disk-reclamation decisions
 
 - [x] Shadow zsh formulae removed 2026-09-08 (about 5 MiB, the point was the
