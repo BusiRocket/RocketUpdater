@@ -4,6 +4,10 @@
 # over the CPU count while the machine is mostly idle. Degrading on that alone
 # defers every plugin and makes the schedule inert. Measured idle decides.
 #
+# The load and the idle percentage arrive in the user's locale — "22,00", not
+# "22.00" — which is what broke the comparison before: awk compared them as
+# strings. The fixture emits the comma form on purpose.
+#
 # The production file calls /usr/sbin/sysctl and /usr/bin/top by absolute path,
 # which is right for a launchd job and impossible to fake through PATH, so the
 # copy under test has those two paths rewritten to the fixture's fakes. What is
@@ -20,15 +24,15 @@ trap '/bin/rm -rf -- "$FIXTURE_DIR"' EXIT
 cat >"$FIXTURE_DIR/bin/sysctl" <<'EOF'
 #!/bin/bash
 case "$2" in
-vm.loadavg) printf '{ 22.00 18.00 17.00 }\n' ;;
-hw.logicalcpu | hw.ncpu) printf '16\n' ;;
+vm.loadavg) printf '{ %s 18,00 17,00 }\n' "${FAKE_LOAD:-22,00}" ;;
+hw.logicalcpu | hw.ncpu) printf '%s\n' "${FAKE_CPUS:-16}" ;;
 *) printf '\n' ;;
 esac
 EOF
 
 cat >"$FIXTURE_DIR/bin/top" <<'EOF'
 #!/bin/bash
-printf 'CPU usage: 20.00%% user, 10.00%% sys, %s%% idle\n' "$FAKE_CPU_IDLE"
+printf 'CPU usage: 20,00%% user, 10,00%% sys, %s%% idle\n' "$FAKE_CPU_IDLE"
 EOF
 chmod +x "$FIXTURE_DIR/bin/sysctl" "$FIXTURE_DIR/bin/top"
 
@@ -37,7 +41,7 @@ sed -e "s#/usr/sbin/sysctl#$FIXTURE_DIR/bin/sysctl#g" \
     "$ROOT_DIR/lib/run_preflight.sh" >"$FIXTURE_DIR/run_preflight.sh"
 
 read_gate() {
-    FAKE_CPU_IDLE=$1 RUN_ID=loadgate ROCKETUPDATER_EVENT_LOG="$FIXTURE_DIR/events.log" \
+    FAKE_CPU_IDLE=$1 FAKE_LOAD=${2:-22,00} FAKE_CPUS=${3:-16} RUN_ID=loadgate ROCKETUPDATER_EVENT_LOG="$FIXTURE_DIR/events.log" \
         /bin/bash -c '
         set -u
         source "'"$ROOT_DIR"'/lib/print_message.sh"
@@ -55,7 +59,7 @@ read_gate() {
 }
 
 # An I/O-bound machine: load 22 on 16 CPUs, but 75% idle. Not degraded.
-IDLE_OUTPUT=$(read_gate 75.00)
+IDLE_OUTPUT=$(read_gate 75,00)
 if ! printf '%s\n' "$IDLE_OUTPUT" | grep -q 'preflight_status=0'; then
     printf '%s\n' "$IDLE_OUTPUT" | grep -E 'preflight (load|status)'
     echo "RED preflight load gate: an idle machine was degraded on load average alone"
@@ -68,9 +72,19 @@ if ! printf '%s\n' "$IDLE_OUTPUT" | grep -q 'cpu_idle=75.00'; then
 fi
 
 # A genuinely saturated machine: load 22 and 0% idle. Degraded, as before.
-BUSY_OUTPUT=$(read_gate 0.0)
+BUSY_OUTPUT=$(read_gate 0,0)
 if ! printf '%s\n' "$BUSY_OUTPUT" | grep -q 'preflight_status=20'; then
     echo "RED preflight load gate: saturation must return the degraded status 20"
+    exit 1
+fi
+
+# The comma is not cosmetic. With load "19,70" against 8 CPUs, comparing the
+# raw strings gives "1" < "8" — under the old code the gate never fired at all
+# on a machine whose locale prints a decimal comma, however saturated it was.
+SPANISH_OUTPUT=$(read_gate 0,0 19,70 8)
+if ! printf '%s\n' "$SPANISH_OUTPUT" | grep -q 'preflight_status=20'; then
+    printf '%s\n' "$SPANISH_OUTPUT" | grep -E 'preflight (load|status)'
+    echo "RED preflight load gate: a comma-decimal load was compared as a string"
     exit 1
 fi
 

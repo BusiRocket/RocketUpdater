@@ -35,7 +35,11 @@ PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" HOME="$FIXTURE_DIR/home" RUNNER_TEST_STATE
     /bin/bash "$FIXTURE_DIR/RocketUpdater.sh" sleeper >"$STATE_DIR/output" 2>&1 &
 RUNNER_PID=$!
 
-for _ in 1 2 3 4 5; do
+# Preflight runs before any plugin — disk, DNS, and now a two-sample `top` when
+# the load is above the CPU count — so on a busy machine the plugin starts well
+# after five seconds. Waiting only that long made this test fail for load rather
+# than for the contract it checks.
+for _ in $(seq 1 60); do
     [ -f "$STATE_DIR/child.pid" ] && break
     sleep 1
 done
@@ -45,7 +49,9 @@ if [ ! -f "$STATE_DIR/child.pid" ]; then
     exit 1
 fi
 
-for _ in 1 2 3 4 5; do
+# The plugin's own timeout is 1s, but the runner gives it `--kill-after=30s`, so
+# a runner that is doing the right thing can still take half a minute to exit.
+for _ in $(seq 1 60); do
     if ! kill -0 "$RUNNER_PID" 2>/dev/null; then
         break
     fi

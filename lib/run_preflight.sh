@@ -68,8 +68,13 @@ run_preflight() {
 
     local load_one
     local cpu_count
+    # sysctl prints the load in the user's locale, so it is "19,70" here and
+    # "19.70" elsewhere. awk -v only treats a value as a number when it looks
+    # like one, so the comma form was compared as a *string*: "19,70" > "8" is
+    # false because "1" < "8", and the whole gate silently never fired on this
+    # machine. Normalise the separator and force numeric context below.
     load_one=$(/usr/sbin/sysctl -n vm.loadavg 2>/dev/null |
-        /usr/bin/awk '{ print $2 }')
+        /usr/bin/awk '{ print $2 }' | /usr/bin/tr ',' '.')
     cpu_count=$(/usr/sbin/sysctl -n hw.logicalcpu 2>/dev/null)
     case $cpu_count in
     '' | *[!0-9]*) cpu_count=1 ;;
@@ -86,7 +91,7 @@ run_preflight() {
     '') load_one=unknown ;;
     *)
         if /usr/bin/awk -v load="$load_one" -v cpus="$cpu_count" \
-            'BEGIN { exit !(load > cpus) }'; then
+            'BEGIN { exit !(load + 0 > cpus + 0) }'; then
             cpu_idle=$(/opt/homebrew/bin/timeout --kill-after=5s 20s \
                 /usr/bin/top -l 2 -n 0 2>/dev/null |
                 /usr/bin/awk '/CPU usage/ { gsub("%", "", $7); idle = $7 } END { print idle }' |
@@ -96,7 +101,7 @@ run_preflight() {
             esac
 
             if [ "$cpu_idle" = unknown ] ||
-                /usr/bin/awk -v idle="$cpu_idle" 'BEGIN { exit !(idle < 15) }'; then
+                /usr/bin/awk -v idle="$cpu_idle" 'BEGIN { exit !(idle + 0 < 15) }'; then
                 degraded_reasons="$degraded_reasons load_above_cpu_count"
             fi
         fi
