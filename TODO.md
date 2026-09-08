@@ -431,7 +431,30 @@ Atrium stays untouched by the owner's decision, index growth included.
   eight **dangling symlinks** from April — six `skaffold-render*` and two `tmp.*`
   pointing into `/var/folders/.../T/` paths macOS has long since cleared. Only
   the links were removed; `helm plugin list` still reports both real plugins.
-- [ ] Helm plugin updates stay the owner's call, and the review changed why.
+- [x] Helm plugins updated 2026-09-08 on the owner's approval — `diff` 3.14.1 to
+  3.15.12 and `dashboard` 2.0.3 to 2.1.3 — with the verification their own
+  installers skip done by hand instead:
+
+  1. Both plugin directories were copied to the session scratchpad first, so a
+     rollback is a `cp -R` away.
+  2. The upstream release tarball was downloaded separately and checked against
+     the checksum file the project publishes:
+     `helm-diff-macos-arm64.tgz` → `cb9e5b6c...632b580`, and
+     `helm-dashboard_2.1.3_Darwin_arm64.tar.gz` → `0d6cb213...dedff85`. Both
+     matched.
+  3. That verified tarball was extracted and its binary hashed, then the plugin
+     was updated through helm, then the *installed* binary was hashed and
+     compared: `diff` → `0fff52a0...6e6a9cd`, `helm-dashboard` →
+     `01faebb0...d737630`. Both identical to the verified reference, which is
+     what proves the unverified download actually delivered the genuine release.
+  4. `helm diff version` answers 3.15.12, `helm dashboard --version` answers
+     2.1.3, and helm itself (v4.2.4) still lists both plugins.
+
+  The defect in `helm-diff`'s installer is still there and still worth knowing —
+  its `installFile` claims to verify a SHA256 and does not. Do the same manual
+  check on the next update rather than trusting the comment.
+
+  Original review — the finding that made this a decision:
   Sources are the legitimate upstreams (`databus23/helm-diff`,
   `komodorio/helm-dashboard`) over HTTPS, and both are behind: diff 3.14.1
   against 3.15.12, dashboard 2.0.3 against 2.1.3. But `helm-diff`'s
