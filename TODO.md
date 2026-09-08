@@ -211,6 +211,35 @@ archives.
   meaningful saving is the 3.2 GiB `.mem` suspended state, released by resuming
   the VM and shutting Windows down properly instead of leaving it suspended —
   the owner's call, since it discards the saved session.
+### Safe reclamation done on 2026-09-08
+
+The MacBook went from 153 GiB free at the start of the session to 218 GiB, with
+nothing lost that cannot be rebuilt or restored from the mini's archive.
+
+- [x] Ollama removed entirely — see the entry above; 6.9 GB and one idle daemon.
+- [x] OrbStack build cache pruned with `docker builder prune -f`: 22.82 GB, the
+  figure Docker itself reported as reclaimable, with zero active cache. Images,
+  containers and volumes were left alone, and every named data volume was
+  checked present afterwards (`enlima-mariadb`, `osseus_dbdata`, `n8n_local_data`,
+  `supabase_db_midia-local-e2e`, `ddev-global-cache`).
+
+  Worth knowing for next time: starting OrbStack made kubelet garbage-collect
+  75 old `k8s_POD_*` sandbox containers and three anonymous volumes from earlier
+  runs. That is kubelet's own startup GC, visible in `docker events` as
+  `container destroy k8s_POD_...`, not something the prune did — but the counts
+  move at the same moment and read as if it had.
+- [x] PlatformIO cache-only prune: 426 MB. `packages` (3.2 GB of toolchains) and
+  `tools` (1.2 GB) untouched, since those are re-downloaded SDKs, not cache.
+- [x] Composer rollback phars: kept `latest.phar` and 2.9.5, removed the eight
+  older ones. `~/.composer` went from 31 MB to 6.4 MB and `composer --version`
+  still answers 2.10.3.
+- [x] `pnpm store prune` on the active v11 store: 732 packages, about 2 GB. The
+  v10 and v3 stores stay: projects under `~/p` still pin pnpm 10.x and 9.15.x.
+- [-] Yarn Berry metadata (1.1 GB) left alone: it is the offline resolution
+  index, and losing it is a real capability loss rather than a cache eviction.
+  The same goes for the Deno (138 MB) and Bun (172 MB) caches, which are not
+  worth the review.
+
 ### Waiting on the owner, not on work
 
 Three items are parked deliberately: the owner will decide them later, and
