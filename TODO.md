@@ -108,6 +108,21 @@ down, bun and platformio not installed), 733 lines, no noise of any kind.
   ext2/3/4 filesystem installer. Homebrew only warns because it did not put them
   there; deleting them breaks audio hardware and licence dongles.
 
+## Findings while closing the backlog (2026-09-08)
+
+- [x] The saturation gate never fired on either machine. `sysctl` prints the
+  load in the user's locale — "19,70", not "19.70" — and `awk -v` only treats a
+  value as numeric when it looks numeric, so the comparison was done on strings:
+  `"19,70" > "8"` is false because `"1" < "8"`. The mini, at load 136 on 8 CPUs
+  with 0.0% idle, was reported healthy. Fixed by normalising the separator and
+  forcing numeric context; `tests/runner/preflight-load-gate.sh` pins the
+  discriminating case. Verified on the mini: it now reports
+  `load=136.31 cpus=8 cpu_idle=0.0` and degrades.
+- [x] `tests/runner/plugin-timeout.sh` failed for machine load rather than for
+  its contract: it waited five seconds for the fixture plugin to start, and
+  preflight now takes a two-sample `top` before any plugin runs. The waits are
+  60s, which also covers the runner's own `--kill-after=30s`.
+
 ## Findings from the run of 2026-09-07
 
 - [x] Homebrew: `brew outdated` was captured with `2>&1`, so deprecation and tap
