@@ -251,9 +251,14 @@ nothing else should touch them in the meantime.
 - [ ] The Parallels `.mem` suspended state — 3.2 GiB, released by resuming the
   VM and shutting Windows down properly. It discards the session saved on
   21 June, which is why it is the owner's call and not a maintenance step.
-- [ ] Standing offer: copy the Parallels VM to the mini as a safety copy while
-  keeping it local. 57 GiB against 2.5 TiB free there. It gains no space; it
-  gains the only existing copy of the only Windows on any machine here.
+- [x] The Parallels VM now has a copy on the mini, taken 2026-09-08 with the VM
+  suspended and nothing but the Parallels service running:
+  `parallels-windows-11-pvm.tar`, 60,705,433,600 bytes, sha256
+  `b191286692...4d672c7`, 30 entries including the 53 GiB `.hds`, the `.mem`
+  suspended state and `config.pvs`. **The local VM was not touched** — it is
+  still `suspended` and still 57 GiB, which is the point: this is the copy that
+  did not exist, not a move. Restoring it is `tar -C ~/Parallels -xf` followed
+  by `prlctl register`.
 
 Atrium stays untouched by the owner's decision, index growth included.
 
