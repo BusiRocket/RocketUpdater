@@ -74,12 +74,31 @@ run_preflight() {
     case $cpu_count in
     '' | *[!0-9]*) cpu_count=1 ;;
     esac
+    # Load average alone is not saturation: it counts processes blocked on I/O,
+    # so a backup daemon or a big download pushes it over the CPU count while
+    # the machine is mostly idle. Measured on 2026-09-08: load 22 on 16 CPUs
+    # with 58% idle, which would defer every plugin for nothing. Confirm with
+    # measured idle before degrading — 2026-09-01 was the genuine case, load
+    # 56-62 with 0.0% idle. When idle cannot be measured, the load alone
+    # decides, which is the old behaviour.
+    local cpu_idle=unknown
     case $load_one in
     '') load_one=unknown ;;
     *)
         if /usr/bin/awk -v load="$load_one" -v cpus="$cpu_count" \
             'BEGIN { exit !(load > cpus) }'; then
-            degraded_reasons="$degraded_reasons load_above_cpu_count"
+            cpu_idle=$(/opt/homebrew/bin/timeout --kill-after=5s 20s \
+                /usr/bin/top -l 2 -n 0 2>/dev/null |
+                /usr/bin/awk '/CPU usage/ { gsub("%", "", $7); idle = $7 } END { print idle }' |
+                /usr/bin/tr ',' '.')
+            case $cpu_idle in
+            '' | *[!0-9.]*) cpu_idle=unknown ;;
+            esac
+
+            if [ "$cpu_idle" = unknown ] ||
+                /usr/bin/awk -v idle="$cpu_idle" 'BEGIN { exit !(idle < 15) }'; then
+                degraded_reasons="$degraded_reasons load_above_cpu_count"
+            fi
         fi
         ;;
     esac
@@ -133,7 +152,7 @@ run_preflight() {
     print_message plain "preflight disk=${disk_free_kib}KiB_free"
     print_message plain "preflight backup=$backup_state"
     print_message plain "preflight power=$power_state"
-    print_message plain "preflight load=$load_one cpus=$cpu_count"
+    print_message plain "preflight load=$load_one cpus=$cpu_count cpu_idle=$cpu_idle"
     print_message plain "preflight FDA=$fda_state"
     print_message plain "preflight DNS=$dns_state"
     print_message plain "preflight sudo_mode=$mode sudo_list=$sudo_list"
