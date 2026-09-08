@@ -46,40 +46,27 @@
       `docker info` gate is bounded with the coreutils timeout preflight already
       requires (10s, `--kill-after=5s`). Covered by `tests/plugins/docker.sh`,
       whose hung-daemon case takes 10s with the bound and 121s without it.
-- [~] Task 3.5 supervised canary — first execution was **not representative**,
-      and the deferral that made it so was correct rather than a false positive.
-      The machine was genuinely saturated: 1-minute load 56-62 against 16
-      logical CPUs, and `top -l 2` measured **0.0% idle** (75.73% user, 24.26%
-      sys) with node at 344% CPU, Backblaze `bztransmit` at 92%, Chrome, Orca
-      and codex all live. Preflight reported `degraded` and deferred every
-      `run`-action plugin, leaving only the reports. So the degradation gate is
-      proven in production, but the full updater path under launchd is still
-      unproven.
+- [x] Task 3.5 supervised canary — closed 2026-09-08. The full updater path
+      under launchd is now proven, not just the deferral gate: run
+      `20260908T004750Z.95225` reported `preflight ready`, exactly one
+      `plugin_end` for each of the 27 plugins, zero error events, and
+      `run_end status=success total=27 successful=25 failed=0 skipped=2` after
+      2054 seconds. Logs stayed 0600 in a 0700 directory, stderr held only
+      gcloud's progress text, and no child survived the run.
 
-      **Risk to watch:** if the machine is also loaded at 03:15, the scheduled
-      run defers everything and still emits `run_end status=success` with zero
-      failures - a no-op that reads as healthy. Whether that happens cannot be
-      determined from a daytime sample, so do not retune the threshold on
-      speculation; observe the first real calendar run instead. Smallest next
-      step: after a 03:15 run, check
-      `tail -40 "$HOME/Library/Logs/RocketUpdater/events.log"` for `preflight`
-      with `ready` rather than `degraded`, exactly one `plugin_end` per plugin,
-      and `run_end` with `status=success`. If it shows `degraded` with
-      `reasons: load_above_cpu_count`, the gate needs a metric that separates
-      genuine CPU saturation from an I/O-bound backup daemon (measured CPU idle,
-      not load average), because deferring every night makes the schedule inert.
+      It also settled the risk this item was watching. The first canary deferred
+      everything because the 1-minute load was above the CPU count while
+      Backblaze was uploading, and a night like that produces `run_end success`
+      having done nothing. The gate now confirms load with measured CPU idle
+      (`preflight ... cpu_idle=`), and this run — load in the 15-22 range on 16
+      CPUs with 58-75% idle — came back `ready` and did the real work. The
+      threshold was not tuned on speculation: `tests/runner/preflight-load-gate.sh`
+      pins both sides, an I/O-bound machine (75% idle, not degraded) and a
+      saturated one (0% idle, degraded, status 20), and the 2026-09-01 canary is
+      the measured example of the second.
 
-      What the run did prove: every one of the 27 plugins emitted exactly one
-      `plugin_end`; the deferral gate fired for all `run` actions; no deletion,
-      prune, purge, or cleanup command appeared anywhere in the output; no child
-      survived `run_end`; and the summary was truthful
-      (`total=27 successful=1 failed=1 skipped=25`). The single failure was
-      Mole, diagnosed and fixed in commit `ad705d8`: Mole abandoned its own dry
-      run when a per-item size check blew its 30-second budget on the 71 GB
-      OrbStack blob. With the budget raised the real dry run now completes
-      (`Dry run complete`, 12.57 GB across 556 items in 6 categories, versus
-      10.14 GB / 423 / 4 when it was cancelled, confirming the cancelled run
-      under-reported) and the plugin exits 0.
+      Slowest steps under launchd, for future comparison: homebrew 315s,
+      brewhealth 488s, mole 123s, osx 43s.
 
 ## Findings from the first Mac mini run (2026-09-08)
 
