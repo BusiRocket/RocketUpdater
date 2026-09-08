@@ -197,10 +197,26 @@ archives.
 - [x] `~/.ollama/models` (28.78 GB) archived whole, then only `qwen3.5:35b-mlx`
   removed locally (21 GB). `qwen3.5-opencode` stays installed: it is a local
   derivative in no registry, and the archive is its only other copy.
-- [ ] Still on the MacBook, pending the owner's call: the Parallels Windows 11
-  VM (57 GiB, suspended since 21 June — archiving it frees the single largest
-  block) and the Steam library (61 GiB across six titles, re-downloadable, so a
-  UI uninstall rather than an archive).
+- [x] Ollama removed entirely on 2026-09-08: the owner uses none of it. Both
+  remaining models went (`qwen3.5-opencode` 6.6 GB, `nomic-embed-text` 274 MB)
+  and `brew services stop ollama` ended the idle daemon. `~/.ollama` is 40 KB.
+  Note for whoever meets this next: `~/.config/opencode/opencode.json` still
+  names `ollama/qwen3.5-opencode:latest` as its `model` and `small_model`, so
+  opencode's default provider is now dangling — point it elsewhere or restore
+  that model from `ollama-models.tar` before using opencode locally.
+- [-] Parallels Windows 11 stays: it is the owner's only Windows. Compaction is
+  not worth running either — `prl_disk_tool compact --info` reports 54,623
+  allocated blocks against 54,610 used at 1 MiB per block, so about **13 MiB**
+  to recover. The 256 GiB virtual disk holds ~53 GiB of real Windows. The only
+  meaningful saving is the 3.2 GiB `.mem` suspended state, released by resuming
+  the VM and shutting Windows down properly instead of leaving it suspended —
+  the owner's call, since it discards the saved session.
+- [ ] Steam — 61 GiB across six titles, re-downloadable: a UI uninstall of the
+  titles the owner picks, not an archive. The two Witcher installs alone are
+  32.6 GiB.
+- [ ] Offer standing: copy the Parallels VM to the mini as a safety copy while
+  keeping it local. It is 57 GiB against 2.5 TiB free there, and it is the only
+  Windows on any machine here with no backup of any kind.
 
 Atrium stays untouched by the owner's decision, index growth included.
 
