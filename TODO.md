@@ -6,12 +6,12 @@
 - [x] `.serena/` is local language-server state, not project content: added to
       `.gitignore` on 2026-09-08, so both checkouts stop reporting it as
       untracked (this also closes the copy in `~/p/osseus/TODO.md`).
-- [ ] Optional hygiene: tracked shell scripts carry U+FE0F (emoji variation selector-16 in echo
-      strings; originally `RocketUpdater.sh`, `lib/bash_colors.sh` (since retired),
-      `scripts/format.sh`, `scripts/lint.sh`; `lib/print_message.sh` inherited the emoji).
-      Benign (verified 2026-08-22, rocket-agents hidden-unicode scan), but they will trip any
-      future variation-selector CI scan; strip the VS16 or allowlist emoji if such a scan is
-      added.
+- [-] U+FE0F hygiene — do not strip it. As of 2026-09-08 the selector survives in
+      exactly one file, `lib/print_message.sh`, on three characters: `ℹ️` (U+2139),
+      `⏭️` (U+23ED) and `⚠️` (U+26A0). Those three have a text presentation by
+      default, so removing VS16 turns the run's prefixes into monochrome glyphs —
+      it degrades the output rather than cleaning it. If a variation-selector CI
+      scan is ever added, allowlist these three; that is the correct fix here.
 
 ## Plugins
 
@@ -162,13 +162,28 @@ down, bun and platformio not installed), 733 lines, no noise of any kind.
 
 ## Manual disk-reclamation decisions
 
-- [ ] Shadow zsh formulae — decision: confirm .zshrc sources the Oh My Zsh
-  powerlevel10k, zsh-autosuggestions, and zsh-syntax-highlighting repositories
-  under `~/.oh-my-zsh/custom`, which are the canonical sourced copies. If
-  confirmed, approve one-time `brew uninstall` of only the three shadow
-  formulae, then verify .zshrc still resolves the Oh My Zsh copies. No plugin
-  or scheduled command may run this uninstall.
-- [ ] OpenClaw gateway decommission — the owner confirmed it is not in use.
+- [x] Shadow zsh formulae removed 2026-09-08 (about 5 MiB, the point was the
+  shadowing, not the space). Confirmed first: `.zshrc` sets
+  `ZSH_THEME="powerlevel10k/powerlevel10k"` and lists `zsh-syntax-highlighting`
+  and `zsh-autosuggestions` in `plugins=(...)`, all resolved from
+  `~/.oh-my-zsh/custom`; nothing sourced `/opt/homebrew/share/zsh-*` and no
+  formula depended on the three. After
+  `brew uninstall --formula powerlevel10k zsh-autosuggestions zsh-syntax-highlighting`
+  a real interactive shell still reports `theme=powerlevel10k/powerlevel10k`,
+  both plugins loaded and the `p10k` function present.
+
+  Note for future shell checks: `.zshrc` takes an early agent path when
+  `CLAUDECODE`, `CODEX_AGENT` and similar are set, so a shell started from an
+  agent session loads none of this. Verify with those variables unset, under a
+  pty, or the result is a false negative.
+- [x] OpenClaw gateway decommission — verified gone on 2026-09-08: no
+  `~/Library/LaunchAgents/ai.openclaw.gateway.plist`, `launchctl print
+  gui/501/ai.openclaw.gateway` reports the service is not in the domain, no
+  gateway process is running and no `~/Library/Logs/openclaw*` remains. Only the
+  retained plist under `LaunchAgents/disabled/` is left, as intended. The
+  recovery sequence below stays for the case where any part of it reappears.
+
+  Original finding — the owner confirmed it is not in use.
   Root cause is a launchd job repeatedly executing Node against absent
   `/opt/homebrew/lib/node_modules/openclaw/dist/index.js`, producing
   `MODULE_NOT_FOUND`. The last live observation showed `spawn scheduled`,
