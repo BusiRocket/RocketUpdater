@@ -84,14 +84,27 @@ run_node_formula_upgrade() {
 # list_brew_outdated KIND prints one outdated package name per line. Homebrew
 # writes deprecation and tap warnings to stderr, so stderr is kept apart from
 # the name list: merging them made the plugin try to upgrade a warning line.
+#
+# Apart, not discarded: those warnings are how Homebrew says a tap is broken or
+# a formula is deprecated, so they are echoed to this run's stderr whether the
+# enumeration succeeded or failed. Only the temp file's lifetime is short, so a
+# killed plugin cannot leave it behind.
 list_brew_outdated() {
     local kind=$1
-    local stderr_file=$2
     local names
     local status
+    local stderr_file
+
+    stderr_file=$(mktemp -t rocketupdater-brew-outdated) || return 1
 
     names=$(brew outdated "--$kind" --quiet 2>"$stderr_file")
     status=$?
+
+    if [ -s "$stderr_file" ]; then
+        printf 'brew outdated --%s reported:\n' "$kind" >&2
+        cat "$stderr_file" >&2
+    fi
+    /bin/rm -f -- "$stderr_file"
 
     if [ "$status" -ne 0 ]; then
         return "$status"
@@ -127,12 +140,8 @@ update_homebrew() {
     fi
 
     echo_info 'Homebrew: Enumerating outdated formulae...'
-    local brew_stderr
-    brew_stderr=$(mktemp -t rocketupdater-brew-outdated) || return 1
     local outdated_formulae
-    if ! outdated_formulae=$(list_brew_outdated formula "$brew_stderr"); then
-        cat "$brew_stderr"
-        /bin/rm -f -- "$brew_stderr"
+    if ! outdated_formulae=$(list_brew_outdated formula); then
         echo_error "Homebrew could not enumerate outdated formulae"
         return 1
     fi
@@ -158,13 +167,10 @@ update_homebrew() {
 
     echo_info 'Homebrew: Enumerating outdated casks...'
     local outdated_casks
-    if ! outdated_casks=$(list_brew_outdated cask "$brew_stderr"); then
-        cat "$brew_stderr"
-        /bin/rm -f -- "$brew_stderr"
+    if ! outdated_casks=$(list_brew_outdated cask); then
         echo_error "Homebrew could not enumerate outdated casks"
         return 1
     fi
-    /bin/rm -f -- "$brew_stderr"
 
     while IFS= read -r item <&3; do
         [ -n "$item" ] || continue

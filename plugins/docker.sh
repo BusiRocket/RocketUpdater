@@ -37,22 +37,34 @@ report_docker() {
 
     # `du` walks live container overlays, where paths vanish between readdir and
     # stat ("No such file or directory", "Stale NFS file handle"). Those lines
-    # are not findings and drowned the whole run, so count them instead: they
-    # mean the reported size is a lower bound.
+    # are not findings and drowned the whole run, so they are counted instead:
+    # they mean the reported size is a lower bound. Anything else `du` says —
+    # a permission failure, an I/O error — is a real problem with the
+    # measurement and is printed, not folded into that count.
     local orbstack_root
     local du_errors
-    local unreadable
-    du_errors=$(mktemp -t rocketupdater-docker-du) || return 1
+    local vanished
+    local other_errors
     for orbstack_root in "$HOME/.orbstack" "$HOME/OrbStack"; do
-        if [ -d "$orbstack_root" ]; then
-            du -sh "$orbstack_root" 2>"$du_errors"
-            unreadable=$(grep -c . "$du_errors" | tr -d ' ')
-            if [ "$unreadable" -gt 0 ]; then
-                echo_info "Docker: $unreadable paths under $orbstack_root vanished while measuring; the size above is a lower bound"
-            fi
+        [ -d "$orbstack_root" ] || continue
+
+        du_errors=$(mktemp -t rocketupdater-docker-du) || return 1
+        du -sh "$orbstack_root" 2>"$du_errors"
+
+        vanished=$(grep -cE 'No such file or directory|Stale NFS file handle' "$du_errors" | tr -d ' ')
+        other_errors=$(grep -vE 'No such file or directory|Stale NFS file handle' "$du_errors" | grep -c . | tr -d ' ')
+
+        if [ "$vanished" -gt 0 ]; then
+            echo_info "Docker: $vanished paths under $orbstack_root vanished while measuring; the size above is a lower bound"
         fi
+
+        if [ "$other_errors" -gt 0 ]; then
+            echo_warning "Docker: $orbstack_root could not be measured completely:"
+            grep -vE 'No such file or directory|Stale NFS file handle' "$du_errors" | head -5
+        fi
+
+        /bin/rm -f -- "$du_errors"
     done
-    /bin/rm -f -- "$du_errors"
 
     return 0
 }

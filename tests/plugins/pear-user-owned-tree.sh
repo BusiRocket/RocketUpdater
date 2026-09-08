@@ -13,9 +13,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE_DIR=$(mktemp -d "$ROOT_DIR/.plugin-fixture-pear-owned.XXXXXX")
 STATE_DIR="$FIXTURE_DIR/state"
 PEAR_DIR="$FIXTURE_DIR/share/pear"
-mkdir -p "$FIXTURE_DIR/bin" "$STATE_DIR" "$FIXTURE_DIR/home" "$PEAR_DIR/Console"
+EXT_DIR="$FIXTURE_DIR/lib/php/extensions"
+mkdir -p "$FIXTURE_DIR/bin" "$STATE_DIR" "$FIXTURE_DIR/home" "$PEAR_DIR/Console" "$EXT_DIR"
+# Root-owned in spirit: not writable by this user, the way a system extension
+# directory is not.
+chmod 500 "$EXT_DIR"
 touch "$PEAR_DIR/Console/Getopt.php"
-trap '/bin/rm -rf -- "$FIXTURE_DIR"' EXIT
+trap 'chmod 700 "$EXT_DIR" 2>/dev/null; /bin/rm -rf -- "$FIXTURE_DIR"' EXIT
 
 cat >"$FIXTURE_DIR/bin/sudo" <<'EOF'
 #!/bin/bash
@@ -53,9 +57,22 @@ esac
 exit 0
 EOF
 
+# PECL installs compiled extensions somewhere else entirely, and that directory
+# can need root while PEAR's does not. The two decisions must not be shared.
 cat >"$FIXTURE_DIR/bin/pecl" <<'EOF'
 #!/bin/bash
 printf 'pecl %s\n' "$*" >>"$PLUGIN_TEST_STATE/commands.log"
+case "$1" in
+config-get) printf '%s\n' "$PLUGIN_TEST_EXT_DIR" ;;
+list)
+    cat <<'LIST'
+INSTALLED PACKAGES, CHANNEL PECL.PHP.NET:
+=========================================
+PACKAGE VERSION STATE
+redis   6.0.2   stable
+LIST
+    ;;
+esac
 exit 0
 EOF
 chmod +x "$FIXTURE_DIR/bin/"*
@@ -63,7 +80,7 @@ chmod +x "$FIXTURE_DIR/bin/"*
 set +e
 PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" HOME="$FIXTURE_DIR/home" \
     SUDO_AVAILABLE=true PLUGIN_TEST_STATE="$STATE_DIR" \
-    PLUGIN_TEST_PEAR_DIR="$PEAR_DIR" /bin/bash -c '
+    PLUGIN_TEST_PEAR_DIR="$PEAR_DIR" PLUGIN_TEST_EXT_DIR="$EXT_DIR" /bin/bash -c '
     set -u
     source "'"$ROOT_DIR"'/lib/print_message.sh"
     source "'"$ROOT_DIR"'/lib/echo_info.sh"
@@ -84,9 +101,17 @@ if [ "$PLUGIN_STATUS" -ne 0 ]; then
     exit 1
 fi
 
-if grep -q '^sudo ' "$STATE_DIR/commands.log"; then
+if grep -qE '^sudo (-n )?pear ' "$STATE_DIR/commands.log"; then
     echo "RED pear ownership: sudo was used on a tree this user can already write"
-    grep '^sudo ' "$STATE_DIR/commands.log" | head -3
+    grep -E '^sudo (-n )?pear ' "$STATE_DIR/commands.log" | head -3
+    exit 1
+fi
+
+# ...but PECL's destination is not writable, so its upgrade must still take the
+# grant the run holds. Sharing one decision between the two tools lost this.
+if ! grep -qE '^sudo (-n )?pecl upgrade' "$STATE_DIR/commands.log"; then
+    echo "RED pear ownership: PECL inherited PEAR's decision and gave up its root grant"
+    grep -E '^(sudo )?pecl' "$STATE_DIR/commands.log" | head -5
     exit 1
 fi
 

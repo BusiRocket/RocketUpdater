@@ -92,10 +92,22 @@ run_preflight() {
     *)
         if /usr/bin/awk -v load="$load_one" -v cpus="$cpu_count" \
             'BEGIN { exit !(load + 0 > cpus + 0) }'; then
-            cpu_idle=$(/opt/homebrew/bin/timeout --kill-after=5s 20s \
-                /usr/bin/top -l 2 -n 0 2>/dev/null |
-                /usr/bin/awk '/CPU usage/ { gsub("%", "", $7); idle = $7 } END { print idle }' |
-                /usr/bin/tr ',' '.')
+            # `top -l 2` prints two samples and only the second is a real
+            # interval measurement; the first is the average since boot, which
+            # on a machine that has been idle all day reads as plenty of idle.
+            # So the second sample must exist: if the timeout fires after the
+            # first one - likeliest exactly when the machine is saturated - the
+            # truncated output must not be read as "plenty of idle available".
+            local cpu_sample
+            if cpu_sample=$(/opt/homebrew/bin/timeout --kill-after=5s 20s \
+                /usr/bin/top -l 2 -n 0 2>/dev/null); then
+                cpu_idle=$(printf '%s\n' "$cpu_sample" |
+                    /usr/bin/awk '/CPU usage/ { gsub("%", "", $7); idle = $7; seen++ }
+                        END { if (seen >= 2) print idle }' |
+                    /usr/bin/tr ',' '.')
+            else
+                cpu_idle=""
+            fi
             case $cpu_idle in
             '' | *[!0-9.]*) cpu_idle=unknown ;;
             esac

@@ -148,4 +148,44 @@ if [ "$ELAPSED" -gt 30 ]; then
     exit 1
 fi
 
+# Case 6: a permission or I/O failure is not container churn. Folding every du
+# error into the "vanished" count hides a measurement that actually broke.
+# Case 5 left behind a docker that hangs on `info`; restore a healthy one.
+cat >"$FIXTURE_DIR/bin/docker" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$*" >>"$PLUGIN_TEST_STATE/docker.log"
+case "$*" in
+'system df') printf 'TYPE TOTAL ACTIVE SIZE RECLAIMABLE\n' ;;
+esac
+exit 0
+EOF
+chmod +x "$FIXTURE_DIR/bin/docker"
+
+cat >"$FIXTURE_DIR/bin/du" <<'EOF'
+#!/bin/bash
+printf 'du: %s/containers/gone: No such file or directory\n' "$2" >&2
+printf 'du: %s/private: Permission denied\n' "$2" >&2
+printf '25G\t%s\n' "$2"
+exit 1
+EOF
+chmod +x "$FIXTURE_DIR/bin/du"
+
+: >"$STATE_DIR/docker.log"
+set +e
+run_report
+REPORT_STATUS=$?
+set -e
+
+if ! grep -q 'Permission denied' "$STATE_DIR/output"; then
+    cat "$STATE_DIR/output"
+    echo "RED docker plugin: a real du failure was hidden as ordinary churn"
+    exit 1
+fi
+
+if ! grep -q '1 paths under .* vanished' "$STATE_DIR/output"; then
+    cat "$STATE_DIR/output"
+    echo "RED docker plugin: the transient errors were not counted separately"
+    exit 1
+fi
+
 echo "docker plugin contract passed"

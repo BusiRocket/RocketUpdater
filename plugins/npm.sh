@@ -109,7 +109,11 @@ update_npm() {
             echo_info "NPM: Updating global packages..."
             # Parse ncu output format: "package  current  →  new"
             # Use awk to properly extract package name (field 1) and new version (field after →)
-            while read -r line; do
+            # fd 3, not stdin: `npm install` inherits the loop's stdin and can
+            # drain the rest of the list, which would update the first package
+            # and report success for all of them (measured in the homebrew
+            # plugin with `brew upgrade`).
+            while read -r line <&3; do
                 # Extract package name (first non-empty field) and new version (after →)
                 local pkg_name new_version
                 pkg_name=$(echo "$line" | awk '{print $1}')
@@ -127,7 +131,7 @@ update_npm() {
                     2) return 1 ;;
                     esac
                 fi
-            done < <(echo "$outdated_output" | grep "→")
+            done 3< <(echo "$outdated_output" | grep "→")
         else
             echo_skip "All global packages are up to date"
         fi

@@ -63,6 +63,15 @@ if grep -qi 'upgrade .*warning' "$STATE_DIR/brew.log" ||
     exit 1
 fi
 
+# Apart from the name list, not lost: a warning is how Homebrew says a tap is
+# broken or a formula deprecated, and a successful enumeration must still show it.
+for warning in 'HOMEBREW_NO_REQUIRE_TAP_TRUST is deprecated' 'postflight' 'goplaces.rb:37'; do
+    if ! grep -qF "$warning" "$STATE_DIR/output"; then
+        echo "RED homebrew noise: the warning '$warning' was discarded instead of shown"
+        exit 1
+    fi
+done
+
 for expected in \
     'upgrade --formula bun' \
     'upgrade --formula oven-sh/bun/bun' \

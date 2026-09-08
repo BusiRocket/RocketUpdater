@@ -92,7 +92,45 @@ run_pecl_command() {
 # one "sudo: a password is required" per package. The answer lives in a global
 # set on first use; plugin files may not run statements at the top level, so it
 # is read with a default instead of being initialised there.
+# TOOL is pear or pecl: they install into different directories, so the answer
+# is per tool. PEAR writes packages into php_dir, PECL builds extensions into
+# extension_dir, and one can be user-owned while the other is not.
+target_needs_root() {
+    local tool=$1
+    local install_dir
+
+    case $tool in
+    pear)
+        install_dir=${PHP_PEAR_INSTALL_DIR:-}
+        [ -n "$install_dir" ] || install_dir=$(pear config-get php_dir 2>/dev/null)
+        ;;
+    pecl)
+        install_dir=$(pecl config-get ext_dir 2>/dev/null)
+        ;;
+    esac
+
+    # An unknown destination is treated as needing root: the old behaviour, and
+    # the safe direction, since a refused grant only costs a fallback.
+    [ -n "$install_dir" ] || return 0
+    [ ! -w "$install_dir" ]
+}
+
 sudo_usable() {
+    local tool=$1
+
+    # Root is for a system tree the user cannot write. On a Homebrew tree the
+    # user owns, upgrading as root rewrites those files as root-owned, and the
+    # next run without a grant — a scheduled one always runs without it — then
+    # fails with "permission denied (delete)". That is exactly how the Mac mini
+    # ended up with 141 root-owned files under /opt/homebrew/share/pear.
+    if ! target_needs_root "$tool"; then
+        # bash 3.2 has no ${var:u}, and this file must run under the system bash.
+        echo_info "$(printf '%s' "$tool" | tr '[:lower:]' '[:upper:]'): its install directory is writable by this user; upgrading without root."
+        return 1
+    fi
+
+    # Whether the grant itself works is a separate question from whether this
+    # destination needs it, so it is probed once and cached on its own.
     if [ -n "${PEAR_SUDO_USABLE:-}" ]; then
         [ "$PEAR_SUDO_USABLE" = yes ]
         return $?
@@ -100,21 +138,6 @@ sudo_usable() {
 
     if [ "${SUDO_AVAILABLE:-false}" != true ]; then
         PEAR_SUDO_USABLE=no
-        return 1
-    fi
-
-    # Root is for a system PEAR the user cannot write. On a Homebrew tree the
-    # user owns, upgrading as root rewrites those files as root-owned, and the
-    # next run without a grant — a scheduled one always runs without it — then
-    # fails with "permission denied (delete)". That is exactly how the Mac mini
-    # ended up with 141 root-owned files under /opt/homebrew/share/pear.
-    local install_dir=${PHP_PEAR_INSTALL_DIR:-}
-    if [ -z "$install_dir" ]; then
-        install_dir=$(pear config-get php_dir 2>/dev/null)
-    fi
-    if [ -n "$install_dir" ] && [ -w "$install_dir" ]; then
-        PEAR_SUDO_USABLE=no
-        echo_info "PEAR: $install_dir is writable by this user; upgrading without root."
         return 1
     fi
 
@@ -138,7 +161,7 @@ run_privileged() {
     shift 3
     local output
 
-    if sudo_usable; then
+    if sudo_usable "$tool"; then
         if output=$(sudo -n "$tool" "$cmd" "$@" 2>&1); then
             printf '%s\n' "$output" | filter_php_noise
             return 0
