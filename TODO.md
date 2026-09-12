@@ -15,6 +15,20 @@
 
 ## Plugins
 
+- [ ] `plugins/homebrew.sh` hangs in `--scheduled` mode when a cask upgrade needs
+  `sudo`: on 2026-09-12 (first `daily-tasks` run, no tty, `sudo_mode=manual`)
+  `brew upgrade` of `dotnet-sdk 10.0.400 -> 10.0.401` stopped at "Uninstalling
+  packages with `sudo`", brew died with `Error: SIGTERM` and the plugin reported
+  `timed out (status 124)`; the whole run then exited 1 with 23/27 plugins fine.
+  The cask was left intact at 10.0.400. Evidence: `~/p/.daily/logs/2026-09-12/
+  system-local.log` lines 280-290. Smallest step: in scheduled mode skip casks
+  whose upgrade needs sudo (`SUDO_AVAILABLE=false`), or run brew with
+  `SUDO_ASKPASS=/usr/bin/false` so the prompt fails fast instead of waiting.
+- [ ] `update_bun` (Bun Cache Report) fails on the mini with `error: No package.json
+  was found for directory "/Users/cristiandeluxe"` (status 1), which marks the whole
+  run failed. Same first `daily-tasks` run, `system-macmini.log` line 588. The
+  report command runs in `$HOME`; it should run from a temp dir or tolerate the
+  missing manifest.
 - [x] Stop `plugins/homebrew.sh` retrying `brew upgrade --greedy` three times
   against the deterministic `gcloud-cli` failure. Resolved 2026-09-01 by plugin
   v2.0.0: the blanket `--greedy` retry loop is gone; each outdated formula and
