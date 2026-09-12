@@ -13,10 +13,13 @@ update_bun() {
         return 20
     fi
 
+    # `bun pm cache` needs a package.json in the cwd or above and exits 1
+    # without one (a scheduled run from $HOME), so fall back to bun's default
+    # cache location instead of failing the plugin.
     local cache_path
-    if ! cache_path=$(bun pm cache 2>&1); then
-        printf '%s\n' "$cache_path"
-        return 1
+    if ! cache_path=$(bun pm cache 2>/dev/null); then
+        cache_path="${BUN_INSTALL:-$HOME/.bun}/install/cache"
+        echo_warning "bun pm cache needs a package.json here; assuming ${cache_path}"
     fi
 
     printf 'bun_cache path=%s\n' "$cache_path"
