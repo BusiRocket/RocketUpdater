@@ -24,11 +24,12 @@
   system-local.log` lines 280-290. Smallest step: in scheduled mode skip casks
   whose upgrade needs sudo (`SUDO_AVAILABLE=false`), or run brew with
   `SUDO_ASKPASS=/usr/bin/false` so the prompt fails fast instead of waiting.
-- [ ] `update_bun` (Bun Cache Report) fails on the mini with `error: No package.json
-  was found for directory "/Users/cristiandeluxe"` (status 1), which marks the whole
-  run failed. Same first `daily-tasks` run, `system-macmini.log` line 588. The
-  report command runs in `$HOME`; it should run from a temp dir or tolerate the
-  missing manifest.
+- [ ] `plugins/bun.sh` fails whenever the run's cwd has no `package.json`: `bun pm cache`
+  exits 1 with `error: No package.json was found for directory "/Users/cristiandeluxe/p/RocketUpdater"`
+  (full run 2026-09-12, the only failed plugin of 27). Smallest step: run `bun pm cache` from a
+  throwaway directory (`cd "$(mktemp -d)"` in a subshell) or fall back to `$HOME/.bun/install/cache`
+  when the probe fails, then re-run `./RocketUpdater.sh bun`.
+
 - [x] Stop `plugins/homebrew.sh` retrying `brew upgrade --greedy` three times
   against the deterministic `gcloud-cli` failure. Resolved 2026-09-01 by plugin
   v2.0.0: the blanket `--greedy` retry loop is gone; each outdated formula and
