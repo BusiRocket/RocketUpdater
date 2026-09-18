@@ -48,14 +48,19 @@ run_osx() {
         "$ROOT_DIR/plugins/osx.sh" update_osx </dev/null >"$1" 2>&1
 }
 
-cat >"$STATE_DIR/listing.txt" <<'EOF_LIST'
+# The listing is byte-exact from softwareupdate on 2026-09-19: Apple writes a
+# non-breaking space (U+00A0, \xc2\xa0) after "macOS", which is what made the
+# first version of this detection miss the real output while passing a
+# hand-typed one.
+NBSP=$(printf '\xc2\xa0')
+cat >"$STATE_DIR/listing.txt" <<EOF_LIST
 Software Update found the following new or updated software:
 * Label: Safari27.0TahoeAuto-27.0
 	Title: Safari, Version: 27.0, Size: 249465KiB, Recommended: YES,
-* Label: macOS Tahoe  26.7-25G229
-	Title: macOS Tahoe  26.7, Version: 26.7, Size: 2960352KiB, Recommended: YES, Action: restart,
-* Label: macOS 27-26A428
-	Title: macOS 27, Version: 27, Size: 11727573KiB, Recommended: YES, Action: restart,
+* Label: macOS${NBSP}Tahoe${NBSP} 26.7-25G229
+	Title: macOS${NBSP}Tahoe${NBSP} 26.7, Version: 26.7, Size: 2960352KiB, Recommended: YES, Action: restart,
+* Label: macOS${NBSP}27-26A428
+	Title: macOS${NBSP}27, Version: 27, Size: 11727573KiB, Recommended: YES, Action: restart,
 EOF_LIST
 
 # Case 1: the auth failure on a listed major upgrade is the known limit.
@@ -63,7 +68,7 @@ set +e
 OSX_TEST_AUTH_FAILURE=1 run_osx "$STATE_DIR/major"
 STATUS=$?
 set -e
-if [ "$STATUS" -ne 0 ] || ! grep -q 'macOS 27-26A428' "$STATE_DIR/major" ||
+if [ "$STATUS" -ne 0 ] || ! grep -q "macOS${NBSP}27-26A428" "$STATE_DIR/major" ||
     ! grep -q 'volume-owner login' "$STATE_DIR/major"; then
     cat "$STATE_DIR/major"
     echo "RED osx major upgrade: the volume-owner auth limit was not reported as a warning"
@@ -90,10 +95,10 @@ if [ "$STATUS" -ne 1 ]; then
 fi
 
 # Case 3: the same auth text without a major upgrade listed is not exempted.
-cat >"$STATE_DIR/listing.txt" <<'EOF_LIST'
+cat >"$STATE_DIR/listing.txt" <<EOF_LIST
 Software Update found the following new or updated software:
-* Label: macOS Tahoe  26.7-25G229
-	Title: macOS Tahoe  26.7, Version: 26.7, Size: 2960352KiB, Recommended: YES, Action: restart,
+* Label: macOS${NBSP}Tahoe${NBSP} 26.7-25G229
+	Title: macOS${NBSP}Tahoe${NBSP} 26.7, Version: 26.7, Size: 2960352KiB, Recommended: YES, Action: restart,
 EOF_LIST
 set +e
 OSX_TEST_AUTH_FAILURE=1 run_osx "$STATE_DIR/minor"

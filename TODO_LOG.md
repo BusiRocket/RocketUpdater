@@ -34,7 +34,10 @@
     above the running major together with the auth failure, reports the
     upgrade as a manual decision (noting that updates listed after it may not
     have downloaded) and succeeds. Other download failures still fail. Safari
-    27 is not mistaken for a macOS release: only `macOS` labels count.
+    27 is not mistaken for a macOS release: only `macOS` labels count, and
+    the real label carries a non-breaking space (U+00A0) after the word,
+    which the first regex missed on the validation run; the test now pins
+    the byte-exact listing.
     Assumption recorded: unattended download of a major macOS upgrade is never
     wanted, so not attempting it changes nothing a user would miss.
   - Evidence: `tests/plugins/osx-major-upgrade-auth.sh` (RED before, GREEN
