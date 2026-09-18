@@ -40,7 +40,7 @@ run_osx() {
         source "'"$ROOT_DIR"'/lib/echo_error.sh"
         source "'"$ROOT_DIR"'/lib/echo_skip.sh"
         source "'"$ROOT_DIR"'/lib/command_exists.sh"
-        source "'"$ROOT_DIR"'/lib/list_major_macos_upgrades.sh"
+        source "'"$ROOT_DIR"'/lib/list_macos_os_updates.sh"
         source "'"$ROOT_DIR"'/plugins/osx.sh"
         update_osx
     ' >"$STATE_DIR/output" 2>&1

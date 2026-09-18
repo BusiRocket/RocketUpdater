@@ -50,14 +50,13 @@ update_osx() {
 
     printf '%s\n' "$updates"
 
-    # An upgrade to a new macOS release asks for a volume owner's password even
-    # under sudo, and a run without a terminal fails that prompt every time
-    # (macOS 27 on 2026-09-19, after macOS 26.7 had already downloaded). The
-    # sudoers rule only allows `-d -r`, so the download still runs as a whole:
-    # the auth failure is reported as the known limit rather than as an error.
-    local current_major major_upgrades
-    current_major=$(sw_vers -productVersion | cut -d. -f1)
-    major_upgrades=$(list_major_macos_upgrades "$updates" "$current_major")
+    # Preparing a macOS release for install asks for a volume owner's password
+    # even under sudo, and a run without a terminal fails that prompt every
+    # time (macOS 26.7 on the Mac mini, macOS 27 on the MacBook, 2026-09-19).
+    # The sudoers rule only allows `-d -r`, so the download still runs as a
+    # whole: the auth failure is reported as the known limit, not as an error.
+    local os_updates
+    os_updates=$(list_macos_os_updates "$updates")
 
     echo_info "macOS: Downloading recommended updates..."
     # The invocation stays on its own line with exactly this argv: it is the
@@ -70,8 +69,9 @@ update_osx() {
     } >"$download_log" 2>&1
     cat "$download_log"
     if [ "$softwareupdate_status" -ne 0 ]; then
-        if [ -n "$major_upgrades" ] && grep -q 'Failed to authenticate' "$download_log"; then
-            echo_warning "macOS: the upgrade to ${major_upgrades//$'\n'/, } needs an interactive volume-owner login; downloading it stays a manual decision, and updates listed after it may not have been downloaded"
+        if [ -n "$os_updates" ] &&
+            grep -Eq 'Failed to authenticate|com\.apple\.LocalAuthentication|Password rejected' "$download_log"; then
+            echo_warning "macOS: ${os_updates//$'\n'/, } needs an interactive volume-owner login to prepare; installing it from System Settings stays a manual decision, and updates listed after it may not have been downloaded"
         else
             /bin/rm -f -- "$download_log"
             echo_error "macOS: Could not download recommended updates"

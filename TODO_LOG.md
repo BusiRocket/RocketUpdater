@@ -24,45 +24,33 @@
     `lib/exclude_npm_snapshot_packages.sh`, `plugins/homebrew.sh`,
     `scripts/run-plugin.sh`, `CHANGELOG.md`.
 
-- [x] 2026-09-19 — **Plugins:** `osx` failed on the macOS 27 upgrade with
-  `Failed to authenticate`.
-  - Result: `sudo -n /usr/sbin/softwareupdate -d -r` downloaded macOS Tahoe
-    26.7 and then stopped at the volume-owner password prompt for macOS 27,
-    which no run without a terminal can answer; the sudoers rule allows only
-    that exact argv, so the download cannot be narrowed to the minor updates
-    without a privileged change. Plugin v2.1.0 detects a listed macOS release
-    above the running major together with the auth failure, reports the
-    upgrade as a manual decision (noting that updates listed after it may not
-    have downloaded) and succeeds. Other download failures still fail. Safari
-    27 is not mistaken for a macOS release: only `macOS` labels count, and
-    the real label carries a non-breaking space (U+00A0) after the word,
-    which the first regex missed on the validation run; the test now pins
-    the byte-exact listing.
-    Assumption recorded: unattended download of a major macOS upgrade is never
-    wanted, so not attempting it changes nothing a user would miss.
-  - Evidence: `tests/plugins/osx-major-upgrade-auth.sh` (RED before, GREEN
+- [x] 2026-09-19 — **Plugins:** `osx` failed on the volume-owner password
+  prompt for a macOS release.
+  - Result: `sudo -n /usr/sbin/softwareupdate -d -r` stops at a volume-owner
+    password prompt when it prepares a macOS release, which no run without a
+    terminal can answer: `Failed to authenticate` after macOS 26.7 had
+    downloaded on the MacBook (macOS 27 next in the list), and
+    `com.apple.LocalAuthentication ... Password rejected (3)` while preparing
+    macOS 26.7 itself on the Mac mini (Spanish locale, NOPASSWD sudo). The
+    first fix assumed only major upgrades were affected; the mini run
+    disproved it. The sudoers rule allows only that exact argv, so the
+    download cannot be narrowed without a privileged change. Plugin v2.1.0
+    detects a listed `macOS` release together with either wording, reports
+    the release as a manual install from System Settings (noting that updates
+    listed after it may not have downloaded) and succeeds. Other download
+    failures still fail. Safari 27 is not mistaken for a macOS release, and
+    the real label carries a non-breaking space (U+00A0) after `macOS`, which
+    the first regex missed on the validation run; the test pins the
+    byte-exact listing and both failure wordings.
+    Assumption recorded: unattended preparation of a macOS release is never
+    achievable without a terminal, so reporting it instead of failing changes
+    nothing a user would miss.
+  - Evidence: `tests/plugins/osx-os-update-auth.sh` (RED before, GREEN
     after), `tests/runner/sudo-mode.sh` still pins the single sudo argv;
-    suite and shellcheck green.
-  - Files: `lib/list_major_macos_upgrades.sh`, `plugins/osx.sh`,
+    suite and shellcheck green; MacBook run 3 `run_end status=success
+    total=27 successful=25 failed=0 skipped=2` (242s).
+  - Files: `lib/list_macos_os_updates.sh`, `plugins/osx.sh`,
     `tests/plugins/osx.sh`, `scripts/run-plugin.sh`, `CHANGELOG.md`.
-
-- [x] 2026-09-19 — **Plugins:** `plugins/homebrew.sh` hangs in `--scheduled`
-  mode when a cask upgrade needs `sudo`.
-  - Result: on 2026-09-12 (first `daily-tasks` run, no tty) `brew upgrade` of
-    `dotnet-sdk 10.0.400 -> 10.0.401` stopped at "Uninstalling packages with
-    `sudo`", brew died with `Error: SIGTERM` and the plugin reported `timed out
-    (status 124)`; the run exited 1 with 23/27 plugins fine. Plugins have no
-    stdin, so the prompt could never return. Plugin v2.1.0 exports
-    `SUDO_ASKPASS=/usr/bin/false` when `SUDO_AVAILABLE` is not `true`: brew
-    passes the variable through its environment filter and adds `sudo -A`
-    whenever it is set, so the prompt fails at once, that cask fails on its
-    own, and the remaining casks still run. A run with cached credentials
-    keeps the plain sudo path.
-  - Evidence: `tests/plugins/homebrew-sudo-askpass.sh` (RED against v2.0.0,
-    GREEN after); `./scripts/test-regressions.sh` all passed;
-    `./scripts/lint.sh` 87 scripts clean.
-  - Files: `plugins/homebrew.sh`, `tests/plugins/homebrew-sudo-askpass.sh`,
-    `CHANGELOG.md`.
 
 - [x] 2026-09-12 — **Plugins:** `plugins/bun.sh` fails whenever the run's cwd
   has no `package.json`.
