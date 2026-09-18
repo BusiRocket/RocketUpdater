@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="Homebrew"
-PLUGIN_VERSION="2.0.0"
+PLUGIN_VERSION="2.1.0"
 DISABLE=false
 PLUGIN_PRIORITY=10
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -131,6 +131,18 @@ update_homebrew() {
     # Only these casks auto-update themselves in ways worth overriding; a
     # blanket --greedy retries deterministic postflight failures forever.
     export HOMEBREW_UPGRADE_GREEDY_CASKS="codexbar goplaces"
+
+    # Some cask upgrades call sudo (dotnet-sdk uninstalls its old packages
+    # that way). Plugins have no stdin, so without a grant that prompt never
+    # returns: on 2026-09-12 a scheduled run waited on it until the plugin
+    # timeout killed brew. Brew adds `-A` to sudo whenever SUDO_ASKPASS is set
+    # and passes the variable through its environment filter, so pointing it
+    # at /usr/bin/false makes the prompt fail at once and the cask fail on its
+    # own, leaving the rest of the run untouched. A run holding cached
+    # credentials keeps the plain sudo path, which needs no prompt.
+    if [ "${SUDO_AVAILABLE:-false}" != true ]; then
+        export SUDO_ASKPASS=/usr/bin/false
+    fi
 
     local failed_items=""
 

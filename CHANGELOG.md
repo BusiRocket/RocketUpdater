@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Homebrew plugin (`plugins/homebrew.sh` v2.1.0) no longer hangs when a cask
+  upgrade calls `sudo` in a run without a root grant. Plugins have no stdin, so
+  the prompt never returned and the scheduled run of 2026-09-12 waited on
+  `dotnet-sdk` until the plugin timeout killed brew. When `SUDO_AVAILABLE` is
+  not `true` the plugin now exports `SUDO_ASKPASS=/usr/bin/false`, which makes
+  brew call `sudo -A` and fail that one cask immediately; the other casks and
+  the rest of the run continue.
+
 ### Added
 
 - Helm plugin checksum verification (`plugins/helm.sh` v1.1.0). Every installed
