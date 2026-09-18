@@ -71,7 +71,7 @@ update_osx() {
     cat "$download_log"
     if [ "$softwareupdate_status" -ne 0 ]; then
         if [ -n "$major_upgrades" ] && grep -q 'Failed to authenticate' "$download_log"; then
-            echo_warning "macOS: the upgrade to $(printf '%s' "$major_upgrades" | tr '\n' ' ')needs an interactive volume-owner login; downloading it stays a manual decision, and updates listed after it may not have been downloaded"
+            echo_warning "macOS: the upgrade to ${major_upgrades//$'\n'/, } needs an interactive volume-owner login; downloading it stays a manual decision, and updates listed after it may not have been downloaded"
         else
             /bin/rm -f -- "$download_log"
             echo_error "macOS: Could not download recommended updates"
