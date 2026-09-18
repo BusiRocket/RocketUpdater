@@ -6,6 +6,43 @@
 
 ### 2026-09
 
+- [x] 2026-09-19 — **Plugins:** Node formula upgrade tripped the global npm
+  integrity guard.
+  - Result: the full run of 2026-09-19 upgraded node 26.8.2 to 26.9.0 and
+    the guard reported `integrity_violation package=npm kind=changed`, failing
+    homebrew on both machines. The formula ships npm itself (`brew ls
+    --verbose node` lists `libexec/lib/node_modules/npm/package.json`), so the
+    rewrite is the upgrade working as designed. The plugin now reads the
+    packages the formula owns and excludes them from both snapshots before the
+    comparison; a foreign package changed by the same upgrade is still
+    reported.
+  - Evidence: `tests/plugins/homebrew-node-bundled-npm.sh` (RED against the
+    old plugin, GREEN after; drives `scripts/run-plugin.sh` so the library
+    wiring is covered); `./scripts/test-regressions.sh` all passed;
+    `./scripts/lint.sh` 92 scripts clean.
+  - Files: `lib/list_formula_npm_packages.sh`,
+    `lib/exclude_npm_snapshot_packages.sh`, `plugins/homebrew.sh`,
+    `scripts/run-plugin.sh`, `CHANGELOG.md`.
+
+- [x] 2026-09-19 — **Plugins:** `osx` failed on the macOS 27 upgrade with
+  `Failed to authenticate`.
+  - Result: `sudo -n /usr/sbin/softwareupdate -d -r` downloaded macOS Tahoe
+    26.7 and then stopped at the volume-owner password prompt for macOS 27,
+    which no run without a terminal can answer; the sudoers rule allows only
+    that exact argv, so the download cannot be narrowed to the minor updates
+    without a privileged change. Plugin v2.1.0 detects a listed macOS release
+    above the running major together with the auth failure, reports the
+    upgrade as a manual decision (noting that updates listed after it may not
+    have downloaded) and succeeds. Other download failures still fail. Safari
+    27 is not mistaken for a macOS release: only `macOS` labels count.
+    Assumption recorded: unattended download of a major macOS upgrade is never
+    wanted, so not attempting it changes nothing a user would miss.
+  - Evidence: `tests/plugins/osx-major-upgrade-auth.sh` (RED before, GREEN
+    after), `tests/runner/sudo-mode.sh` still pins the single sudo argv;
+    suite and shellcheck green.
+  - Files: `lib/list_major_macos_upgrades.sh`, `plugins/osx.sh`,
+    `tests/plugins/osx.sh`, `scripts/run-plugin.sh`, `CHANGELOG.md`.
+
 - [x] 2026-09-19 — **Plugins:** `plugins/homebrew.sh` hangs in `--scheduled`
   mode when a cask upgrade needs `sudo`.
   - Result: on 2026-09-12 (first `daily-tasks` run, no tty) `brew upgrade` of

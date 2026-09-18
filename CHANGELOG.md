@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Homebrew plugin: upgrading the node formula no longer fails the global npm
+  integrity guard. The formula ships npm itself, so the upgrade rewrites that
+  package by design; the guard judged it as foreign damage
+  (`integrity_violation package=npm kind=changed`) and failed every node
+  upgrade, 26.8.2 to 26.9.0 on 2026-09-19 on both machines. The packages a
+  formula owns are now read from `brew ls --verbose` and left out of the
+  comparison, so only packages the formula does not own can still trip it.
+- macOS plugin (`plugins/osx.sh` v2.1.0): an upgrade to a new macOS release
+  asks for a volume owner's password even under sudo, so a run without a
+  terminal always failed on `Failed to authenticate` once such an upgrade was
+  listed (macOS 27 on 2026-09-19, after macOS 26.7 had downloaded). The plugin
+  now recognises that case, reports the upgrade as a manual decision, and
+  succeeds; every other download failure still fails, and the sudoers argv is
+  unchanged.
 - Homebrew plugin (`plugins/homebrew.sh` v2.1.0) no longer hangs when a cask
   upgrade calls `sudo` in a run without a root grant. Plugins have no stdin, so
   the prompt never returned and the scheduled run of 2026-09-12 waited on
