@@ -67,6 +67,14 @@ run_node_formula_upgrade() {
         return 1
     fi
 
+    # The formula ships npm itself, so a node upgrade rewrites that package by
+    # design; judging it as foreign damage failed every node upgrade (26.8.2 to
+    # 26.9.0 on 2026-09-19). Only packages the formula does not own are compared.
+    local formula_packages
+    formula_packages=$(list_formula_npm_packages node)
+    before_snapshot=$(exclude_npm_snapshot_packages "$before_snapshot" "$formula_packages")
+    after_snapshot=$(exclude_npm_snapshot_packages "$after_snapshot" "$formula_packages")
+
     violations=$(compare_global_npm_snapshots "$before_snapshot" "$after_snapshot" "")
 
     if [ -n "$violations" ]; then

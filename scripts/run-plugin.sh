@@ -51,6 +51,12 @@ source "$ROOT_DIR/lib/log_event.sh" || exit 78
 source "$ROOT_DIR/lib/snapshot_global_npm_packages.sh" || exit 78
 # shellcheck source=../lib/compare_global_npm_snapshots.sh
 source "$ROOT_DIR/lib/compare_global_npm_snapshots.sh" || exit 78
+# shellcheck source=../lib/list_formula_npm_packages.sh
+source "$ROOT_DIR/lib/list_formula_npm_packages.sh" || exit 78
+# shellcheck source=../lib/exclude_npm_snapshot_packages.sh
+source "$ROOT_DIR/lib/exclude_npm_snapshot_packages.sh" || exit 78
+# shellcheck source=../lib/list_major_macos_upgrades.sh
+source "$ROOT_DIR/lib/list_major_macos_upgrades.sh" || exit 78
 # shellcheck source=../lib/list_sparkle_obsolete_candidates.sh
 source "$ROOT_DIR/lib/list_sparkle_obsolete_candidates.sh" || exit 78
 # shellcheck source=../lib/helm_plugin_release_source.sh
