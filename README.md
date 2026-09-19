@@ -48,6 +48,11 @@ Execute `./RocketUpdater.sh` to run every plugin in a supervised update pass, or
   reports only, never deletes, and never prompts for sudo.
 - `./RocketUpdater.sh --preflight-only` (combinable with `--scheduled`) — runs
   and reports the fail-closed preflight without executing plugins.
+- `./RocketUpdater.sh --force` (combinable with a plugin name) — terminates the
+  run that currently holds the lock, waits for it to exit, and then runs as
+  usual. The terminated run still logs its `run_end`; the forcing run logs a
+  `lock_forced` event. It cannot be combined with `--scheduled`, so launchd
+  never kills a manual run.
 - `./RocketUpdater.sh --clean <homebrew|npm|sparkle|all>` — supervised cleanup.
   It requires a real terminal, previews the exact candidates with their
   allocated KiB, and removes them only after you type the operation name.

@@ -56,6 +56,33 @@ fi
 
 if [ "$ROCKETUPDATER_LOCKED" != "1" ]; then
     export ROCKETUPDATER_LOCKED=1
+    # --force is honoured before the lock is tried, so the running instance
+    # is terminated first. Combined with --scheduled it is refused: launchd
+    # must never kill a manual run.
+    force_requested=false
+    scheduled_requested=false
+    for argument in "$@"; do
+        [ "$argument" = --force ] && force_requested=true
+        [ "$argument" = --scheduled ] && scheduled_requested=true
+    done
+    if [ "$force_requested" = true ] && [ "$scheduled_requested" = true ]; then
+        print_message plain "--force cannot be combined with --scheduled" >&2
+        exit 78
+    fi
+    if [ "$force_requested" = true ]; then
+        # shellcheck source=lib/list_process_tree.sh
+        source "$SCRIPT_DIR/lib/list_process_tree.sh"
+        # shellcheck source=lib/terminate_running_instance.sh
+        source "$SCRIPT_DIR/lib/terminate_running_instance.sh"
+        if ! terminated_pid=$(terminate_running_instance "$LOCK_DIRECTORY"); then
+            print_message plain "RocketUpdater could not terminate the running instance" >&2
+            exit 75
+        fi
+        if [ -n "$terminated_pid" ]; then
+            log_event warning lock_forced '' forced 0 "Terminated the running RocketUpdater (pid $terminated_pid)" || true
+            print_message plain "Terminated the running RocketUpdater (pid $terminated_pid)" >&2
+        fi
+    fi
     if /usr/bin/lockf -s -t 0 -k \
         "$LOCK_DIRECTORY/run.lock" \
         "$SCRIPT_DIR/RocketUpdater.sh" "$@"; then
@@ -69,6 +96,9 @@ if [ "$ROCKETUPDATER_LOCKED" != "1" ]; then
     fi
     exit "$lock_status"
 fi
+
+# Recorded inside the lock so --force can find the run that holds it.
+printf '%s\n' "$$" >"$LOCK_DIRECTORY/run.pid"
 
 # shellcheck source=lib/command_exists.sh
 source "$SCRIPT_DIR/lib/command_exists.sh"
@@ -119,6 +149,11 @@ parse_cli_arguments() {
                 return 78
             fi
             saw_scheduled=true
+            shift
+            ;;
+        --force)
+            # Already acted on before the lock was taken; accepted here so
+            # the locked runner does not reject its own arguments.
             shift
             ;;
         --preflight-only)

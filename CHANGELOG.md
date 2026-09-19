@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--force` terminates the run that holds the single-instance lock and takes
+  it over. On 2026-09-19 the 03:15 launchd run was still on its last plugin
+  at 03:32, and the only way to start a manual run was to find the lock
+  holder with `lsof` and kill it by hand. The locked runner now records its
+  pid in `~/Library/Caches/RocketUpdater/run.pid`; `--force` checks that the
+  pid is still a `RocketUpdater.sh` process, signals its whole process tree
+  with TERM (then KILL after 10s), waits for it to exit, and logs a
+  `lock_forced` event. `--force --scheduled` is refused with exit 78 so
+  launchd never kills a manual run (`tests/runner/lock-force.sh`).
+
 ### Fixed
 
 - Homebrew plugin: upgrading the node formula no longer fails the global npm
