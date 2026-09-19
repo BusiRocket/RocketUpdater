@@ -19,8 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lock_forced` event. `--force --scheduled` is refused with exit 78 so
   launchd never kills a manual run (`tests/runner/lock-force.sh`).
 
+### Changed
+
+- Preflight: Backblaze counts as the backup. A `bz_done_*.dat` transmit log
+  newer than 7 days under `/Library/Backblaze.bzpkg/bzdata/bzbackup/bzdatacenter`
+  reports `backup=backblaze`; Time Machine is only the fallback signal
+  (`backup=timemachine`, formerly `configured`), and the `backup=none`
+  warning names both. Both Macs back up with Backblaze and never with Time
+  Machine, so every run used to warn about a missing Time Machine
+  destination (`tests/runner/preflight-backup.sh`).
+
 ### Fixed
 
+- macOS plugin (`plugins/osx.sh` v2.2.0): the download runs without a
+  controlling terminal. `softwareupdate -d -r` opens `/dev/tty` for the
+  volume-owner password of a listed macOS release, so a manual run in a
+  terminal sat on `Password:` until the plugin's 1800s timeout (exit 124 on
+  2026-09-19 at 03:44, with macOS 26.7 and macOS 27 listed) while the
+  download log stayed empty. The call now goes through
+  `run_without_controlling_tty` (perl `POSIX::setsid`), where the prompt
+  fails at once with `Failed to authenticate` and the plugin reports the
+  known limit in about 20 seconds, as scheduled runs already did. `/usr/bin/perl`
+  joins the preflight's required binaries
+  (`tests/plugins/osx-no-controlling-tty.sh`).
 - Homebrew plugin: upgrading the node formula no longer fails the global npm
   integrity guard. The formula ships npm itself, so the upgrade rewrites that
   package by design; the guard judged it as foreign damage

@@ -62,6 +62,11 @@ Exit status 0 means no plugin failures; nonzero names every failure. A plugin
 returning 20 means it skipped intentionally, 124 means it timed out, 75 means
 another run holds the lock, and 78 means invalid configuration or preflight.
 
+The preflight reports `backup=backblaze` when Backblaze transmitted within the
+last 7 days (newest `bz_done_*.dat` under
+`/Library/Backblaze.bzpkg/bzdata/bzbackup/bzdatacenter`), `backup=timemachine`
+when only a Time Machine destination exists, and warns on `backup=none`.
+
 ## Root access
 
 Some steps do more as root: PEAR and PECL write into system directories, and the
