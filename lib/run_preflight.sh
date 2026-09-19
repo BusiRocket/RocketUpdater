@@ -11,7 +11,7 @@ run_preflight() {
     local binaries_status=ok
     local required_binary
     for required_binary in /bin/bash /usr/bin/lockf /opt/homebrew/bin/timeout \
-        /usr/bin/caffeinate /usr/sbin/softwareupdate; do
+        /usr/bin/caffeinate /usr/sbin/softwareupdate /usr/bin/perl; do
         if [ ! -x "$required_binary" ]; then
             binaries_status=missing
             failure_reasons="$failure_reasons missing_binary:$required_binary"
@@ -42,13 +42,19 @@ run_preflight() {
         ;;
     esac
 
+    # Backblaze is the backup on both Macs; Time Machine stays as a fallback
+    # signal only.
     local backup_state=none
     local tmutil_output
-    tmutil_output=$(/usr/bin/tmutil destinationinfo 2>&1) || true
-    case $tmutil_output in
-    *'No destinations'* | '') backup_state=none ;;
-    *) backup_state=configured ;;
-    esac
+    if backblaze_backup_recent; then
+        backup_state=backblaze
+    else
+        tmutil_output=$(/usr/bin/tmutil destinationinfo 2>&1) || true
+        case $tmutil_output in
+        *'No destinations'* | '') backup_state=none ;;
+        *) backup_state=timemachine ;;
+        esac
+    fi
 
     local power_state=ac
     local battery_percent=100
@@ -177,7 +183,7 @@ run_preflight() {
     print_message plain "preflight binaries=$binaries_status"
 
     if [ "$backup_state" = none ]; then
-        echo_warning "No Time Machine destination is configured; destructive work stays manual."
+        echo_warning "No backup seen (no Backblaze transmit in 7 days, no Time Machine destination); destructive work stays manual."
     fi
 
     if [ -n "$failure_reasons" ]; then

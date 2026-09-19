@@ -104,6 +104,8 @@ printf '%s\n' "$$" >"$LOCK_DIRECTORY/run.pid"
 source "$SCRIPT_DIR/lib/command_exists.sh"
 # shellcheck source=lib/read_plugin_metadata.sh
 source "$SCRIPT_DIR/lib/read_plugin_metadata.sh"
+# shellcheck source=lib/backblaze_backup_recent.sh
+source "$SCRIPT_DIR/lib/backblaze_backup_recent.sh"
 # shellcheck source=lib/run_preflight.sh
 source "$SCRIPT_DIR/lib/run_preflight.sh"
 
