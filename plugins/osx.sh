@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PLUGIN_NAME="OSX"
-PLUGIN_VERSION="2.1.0"
+PLUGIN_VERSION="2.2.0"
 DISABLE=false
 PLUGIN_PRIORITY=100
 PLUGIN_TIMEOUT_SECONDS=1800
@@ -61,10 +61,15 @@ update_osx() {
     echo_info "macOS: Downloading recommended updates..."
     # The invocation stays on its own line with exactly this argv: it is the
     # only command the sudoers rule allows, and tests/runner/sudo-mode.sh pins it.
+    # It runs without a controlling terminal because softwareupdate opens
+    # /dev/tty for that volume-owner password: in a terminal run the prompt
+    # waited until the 1800s timeout (2026-09-19, exit 124), while without a
+    # tty it fails at once with the wording handled below.
     local download_log
     download_log=$(mktemp -t rocketupdater-softwareupdate) || return 1
     {
-        sudo -n /usr/sbin/softwareupdate -d -r
+        run_without_controlling_tty \
+            sudo -n /usr/sbin/softwareupdate -d -r
         softwareupdate_status=$?
     } >"$download_log" 2>&1
     cat "$download_log"
