@@ -121,8 +121,13 @@ update_npm() {
 
                 if [ -n "$pkg_name" ] && [ -n "$new_version" ]; then
                     echo "  → Updating $pkg_name to $new_version..."
-                    run_guarded_global_install "$pkg_name" \
-                        npm install -g "${pkg_name}@${new_version}"
+                    if npm_script_allowed "$pkg_name"; then
+                        run_guarded_global_install "$pkg_name" \
+                            npm install -g --allow-scripts="$pkg_name" "${pkg_name}@${new_version}"
+                    else
+                        run_guarded_global_install "$pkg_name" \
+                            npm install -g "${pkg_name}@${new_version}"
+                    fi
                     case $? in
                     1)
                         has_failures=1

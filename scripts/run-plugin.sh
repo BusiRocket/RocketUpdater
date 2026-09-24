@@ -55,6 +55,8 @@ source "$ROOT_DIR/lib/compare_global_npm_snapshots.sh" || exit 78
 source "$ROOT_DIR/lib/list_formula_npm_packages.sh" || exit 78
 # shellcheck source=../lib/exclude_npm_snapshot_packages.sh
 source "$ROOT_DIR/lib/exclude_npm_snapshot_packages.sh" || exit 78
+# shellcheck source=../lib/npm_script_allowed.sh
+source "$ROOT_DIR/lib/npm_script_allowed.sh" || exit 78
 # shellcheck source=../lib/list_macos_os_updates.sh
 source "$ROOT_DIR/lib/list_macos_os_updates.sh" || exit 78
 # shellcheck source=../lib/run_without_controlling_tty.sh
