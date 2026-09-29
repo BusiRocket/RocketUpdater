@@ -59,7 +59,7 @@ fi
 
 # Nothing from the PHP stack trace may become an upgrade target.
 for bogus_name in 'Warning:' 'Fatal' 'Stack' '#0' '#1' '#2' 'thrown' '{main}'; do
-    if grep -qF "upgrade --force $bogus_name" "$STATE_DIR/commands.log"; then
+    if grep -qE "upgrade( --force)? $bogus_name( |$)" "$STATE_DIR/commands.log"; then
         echo "RED pear plugin: stack-trace text was parsed as a package name: $bogus_name"
         exit 1
     fi
@@ -135,13 +135,13 @@ if [ "$BREW_PHP_STATUS" -ne 0 ]; then
     exit 1
 fi
 
-if grep -qF 'pear upgrade --force PEAR' "$STATE_DIR/commands.log"; then
+if grep -qE 'pear upgrade( --force)? PEAR( |$)' "$STATE_DIR/commands.log"; then
     echo "RED pear plugin: it tried to upgrade the Homebrew-owned PEAR package"
     exit 1
 fi
 
 for expected_package in Archive_Tar XML_Util; do
-    if ! grep -qF "pear upgrade --force $expected_package" "$STATE_DIR/commands.log"; then
+    if ! grep -qF "pear upgrade $expected_package" "$STATE_DIR/commands.log"; then
         echo "RED pear plugin: it did not upgrade $expected_package individually"
         exit 1
     fi

@@ -92,7 +92,7 @@ fi
 
 # The packages still get upgraded, just without root.
 for expected_package in Archive_Tar Console_Getopt XML_Util; do
-    if ! grep -qF "pear upgrade --force $expected_package" "$STATE_DIR/commands.log"; then
+    if ! grep -qF "pear upgrade $expected_package" "$STATE_DIR/commands.log"; then
         echo "RED pear sudo probe: $expected_package was not upgraded unprivileged"
         exit 1
     fi

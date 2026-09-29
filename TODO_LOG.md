@@ -6,6 +6,23 @@
 
 ### 2026-09
 
+- [x] 2026-09-29 — **Plugins:** PEAR upgrades died on "Failed opening
+  required 'Archive/Tar.php'".
+  - Result: every package was upgraded with `--force`, so each run reinstalled
+    current packages, and each reinstall deleted the files the registry had
+    recorded in the Homebrew Cellar skeleton (`Cellar/php/8.5.11/share/php/pear`),
+    which is the only include_path the bare `pear` wrapper knows. Once
+    Archive_Tar was reinstalled into `share/pear`, every later upgrade failed,
+    and plain `pear` in a shell later lost `System.php` too. The plugin now
+    points the wrapper at the configured `php_dir` whenever it holds
+    `pearcmd.php`, even when `pear list` works, and upgrades without `--force`.
+    The Cellar was restored with `brew reinstall php`.
+  - Evidence: `tests/plugins/pear-configured-php-dir.sh` (RED before, GREEN
+    after); the other pear tests now expect `pear upgrade <package>`; two real
+    `./RocketUpdater.sh pear` runs each gave "Nothing to upgrade" x4 and
+    success, with `Archive/Tar.php` and `System.php` still in the Cellar;
+    `scripts/test-regressions.sh` and `scripts/lint.sh` (102 scripts) green.
+
 - [x] 2026-09-19 — **Plugins:** Node formula upgrade tripped the global npm
   integrity guard.
   - Result: the full run of 2026-09-19 upgraded node 26.8.2 to 26.9.0 and

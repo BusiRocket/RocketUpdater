@@ -17,8 +17,19 @@ check_pear() {
 # "Failed opening required 'Console/Getopt.php'" on every command. The wrapper
 # honours PHP_PEAR_INSTALL_DIR, so point it at the tree that really holds the
 # packages instead of editing the user's php.ini.
+# A working `pear list` is not proof: it never loads Archive_Tar, and the first
+# `upgrade --force Archive_Tar` moves Archive/Tar.php out of the Cellar into the
+# configured php_dir, breaking every later upgrade (2026-09-29). So prefer the
+# configured php_dir whenever it holds a complete PEAR front end.
 resolve_pear_install_dir() {
     if [ -n "${PHP_PEAR_INSTALL_DIR:-}" ]; then
+        return 0
+    fi
+
+    local configured
+    configured=$(pear config-get php_dir 2>/dev/null)
+    if [ -n "$configured" ] && [ -f "$configured/pearcmd.php" ]; then
+        export PHP_PEAR_INSTALL_DIR="$configured"
         return 0
     fi
 
@@ -280,7 +291,11 @@ update_pear() {
                     continue
                 fi
                 echo "  → Upgrading $pear_package..."
-                if ! run_pear_command_privileged "upgrade" "--force" "$pear_package"; then
+                # No --force: it reinstalls current packages on every run, and
+                # each reinstall deletes the old files the registry recorded
+                # in the Cellar skeleton, which left the bare `pear` wrapper
+                # without Archive/Tar.php or System.php (2026-09-29).
+                if ! run_pear_command_privileged "upgrade" "$pear_package"; then
                     has_failures=true
                 fi
             done

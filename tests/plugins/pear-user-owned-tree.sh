@@ -122,7 +122,7 @@ if ! grep -q 'writable by this user; upgrading without root' "$STATE_DIR/output"
 fi
 
 for expected_package in Archive_Tar XML_Util; do
-    if ! grep -qF "pear upgrade --force $expected_package" "$STATE_DIR/commands.log"; then
+    if ! grep -qF "pear upgrade $expected_package" "$STATE_DIR/commands.log"; then
         echo "RED pear ownership: $expected_package was not upgraded unprivileged"
         exit 1
     fi
