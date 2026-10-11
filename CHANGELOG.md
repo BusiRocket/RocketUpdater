@@ -28,7 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lock_forced` event. `--force --scheduled` is refused with exit 78 so
   launchd never kills a manual run (`tests/runner/lock-force.sh`).
 
+- Compact runs keep the newest 30 `run-*.log` files in
+  `~/Library/Logs/RocketUpdater/` (`tests/runner/run-log-pruning.sh`).
+
 ### Changed
+
+- Mole 3.0.0: a manual run now cleans with `mo clean` instead of only
+  previewing it, and reports the freed total. Scheduled runs stay dry-run
+  only. The cleanup-safety check allows exactly that call and now also
+  catches `mo clean` followed by a redirect. The real clean runs only when
+  `~/.config/mole/whitelist` protects `~/Library/Logs/RocketUpdater` and
+  `~/Library/Caches/RocketUpdater`, because Mole's user sweep otherwise
+  deletes RocketUpdater's own logs and lock mid-run
+  (`tests/plugins/mole.sh`, `tests/runner/cleanup-safety.sh`).
 
 - Standing policy reminders (removal stays manual, feed versions are evidence
   only, and similar) are notes, not warnings, so real warnings stand out.

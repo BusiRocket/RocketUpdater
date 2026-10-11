@@ -19,10 +19,21 @@ if find "$ROOT_DIR/cleanup" -type f -name '*.sh' -print | sed 's#.*/##; s#\.sh$#
 fi
 
 if rg -n --glob '*.sh' \
-    'rm -rf|rm -r |find .* -delete|find .* -exec .*rm|brew cleanup|npm cache (clean|verify)|clear-npx-cache|yarn cache clean|uv cache prune|pnpm store prune|pip3 cache purge|conda clean|composer clearcache|mo clean([^ -]|$)|docker (system|container|image|volume|network|builder) prune|sudo purge|softwareupdate -ia' \
+    'rm -rf|rm -r |find .* -delete|find .* -exec .*rm|brew cleanup|npm cache (clean|verify)|clear-npx-cache|yarn cache clean|uv cache prune|pnpm store prune|pip3 cache purge|conda clean|composer clearcache|mo clean( +[^ -]|[^ -]|$)|docker (system|container|image|volume|network|builder) prune|sudo purge|softwareupdate -ia' \
     "$ROOT_DIR" -g '!tests/**' -g '!cleanup/guard_homebrew_cleanup.sh' -g '!cleanup/guard_npm_public_cache.sh' \
-    -g '!cleanup/guard_sparkle_obsolete_installations.sh' | grep -q .; then
+    -g '!cleanup/guard_sparkle_obsolete_installations.sh' -g '!plugins/mole.sh' | grep -q .; then
     echo "RED cleanup safety: destructive command remains outside the exact cleanup allowlist"
+    exit 1
+fi
+
+# The owner asked for a manual run to clean with Mole (2026-10-11), so the one
+# real `mo clean` lives in the plugin's manual entry point. Scheduled runs call
+# report_mole, which must stay dry-run only.
+if [ "$(rg -c 'mo clean( +[^ -]|[^ -]|$)' "$ROOT_DIR/plugins/mole.sh")" != 1 ] ||
+    ! sed -n '/^update_mole()/,/^}/p' "$ROOT_DIR/plugins/mole.sh" | rg -q 'mo clean </dev/null' ||
+    sed -n '/^report_mole()/,/^}/p' "$ROOT_DIR/plugins/mole.sh" | rg -q 'mo clean( +[^ -]|[^ -]|$)' ||
+    ! rg -q '^PLUGIN_SCHEDULE_ACTION=report$' "$ROOT_DIR/plugins/mole.sh"; then
+    echo "RED cleanup safety: a real mo clean is reachable outside the manual update_mole"
     exit 1
 fi
 

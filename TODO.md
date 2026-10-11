@@ -19,10 +19,6 @@
   2026-09-19. Blocked on that issue; a patch to either repo would be
   overwritten by the next release.
 
-- [ ] Compact runs write one `run-<RUN_ID>.log` per manual run under
-  `~/Library/Logs/RocketUpdater/` and nothing prunes them. Low volume (manual
-  runs only); smallest step: keep the newest 30 at run start.
-
 ## Waiting on the owner, not on work
 
 Parked deliberately: the owner will decide them later, and nothing else should

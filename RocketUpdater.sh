@@ -126,6 +126,8 @@ source "$SCRIPT_DIR/lib/render_plugin_progress.sh"
 source "$SCRIPT_DIR/lib/run_plugin_compact.sh"
 # shellcheck source=lib/print_plugin_result.sh
 source "$SCRIPT_DIR/lib/print_plugin_result.sh"
+# shellcheck source=lib/prune_run_logs.sh
+source "$SCRIPT_DIR/lib/prune_run_logs.sh"
 
 ROCKETUPDATER_VERSION="1.0.0"
 RUN_STARTED_AT=$(/bin/date '+%s')
@@ -262,6 +264,7 @@ if [ "$ROCKETUPDATER_COMPACT" = true ]; then
         exit 78
     fi
     umask "$previous_umask"
+    prune_run_logs "$EVENT_DIRECTORY" 30
     printf '\n  \033[1mRocketUpdater\033[0m \033[90mv%s\033[0m\n\n' "$ROCKETUPDATER_VERSION"
 fi
 

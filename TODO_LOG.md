@@ -6,6 +6,25 @@
 
 ### 2026-10
 
+- [x] 2026-10-11 — **Mole cleans on manual runs; run logs pruned.**
+  - Result: a manual run calls `update_mole`, which runs the real `mo clean`
+    with stdin closed (Mole's non-interactive path: user caches always,
+    system caches when the cached sudo grant is live) and reports Mole's
+    "Tracked cleanup" total as a change. Scheduled runs keep `report_mole`,
+    dry run only. `cleanup-safety.sh` allows exactly that one call and its
+    pattern now also catches `mo clean <redirect>`, which it used to miss.
+    Compact runs keep the newest 30 `run-*.log` files.
+    First real run freed 15.5 GB but Mole's user sweep (every child of
+    `~/Library/Logs` and `~/Library/Caches`) deleted RocketUpdater's own log
+    directory (events.log, 266 KB, unrecoverable; it had also happened on
+    2026-10-05 from a standalone `mo clean`) and lock directory mid-run.
+    Created `~/.config/mole/whitelist` with Mole 1.59.1's defaults plus both
+    RocketUpdater paths; `update_mole` now refuses to clean (status 20) unless
+    that whitelist protects them. Second real run: 323.9 MB freed, logs and
+    lock intact.
+  - Evidence: `tests/plugins/mole.sh` and `tests/runner/run-log-pruning.sh`
+    red on the previous code, green now; full regression suite green.
+
 - [x] 2026-10-11 — **Interface and run failures:** Mole-style compact output
   for manual runs; homebrew, yarn, mole and msupdate failures from the
   2026-10-11 run.
