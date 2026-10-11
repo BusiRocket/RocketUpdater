@@ -21,7 +21,9 @@
     Created `~/.config/mole/whitelist` with Mole 1.59.1's defaults plus both
     RocketUpdater paths; `update_mole` now refuses to clean (status 20) unless
     that whitelist protects them. Second real run: 323.9 MB freed, logs and
-    lock intact.
+    lock intact. Same whitelist installed on the Mac mini (Mole 1.57.0,
+    identical defaults); its dry run lists both paths as protected and none
+    of them as candidates.
   - Evidence: `tests/plugins/mole.sh` and `tests/runner/run-log-pruning.sh`
     red on the previous code, green now; full regression suite green.
 
