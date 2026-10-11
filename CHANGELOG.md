@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Compact terminal interface for manual runs, in the style of Mole: a one-line
+  preflight summary, a spinner with elapsed time and the latest step per
+  plugin, one status line per plugin with its changes, warnings, errors and
+  notes, and a closing summary with the path of the run's full log. Plugins
+  report through two new levels, `echo_change` and `echo_note`, and under the
+  interface every leveled message travels as a record the renderer parses.
+  `--verbose`, `NO_COLOR`, pipes and `--scheduled` keep the streamed output
+  (`tests/runner/compact-ui.sh`).
+
 - `--force` terminates the run that holds the single-instance lock and takes
   it over. On 2026-09-19 the 03:15 launchd run was still on its last plugin
   at 03:32, and the only way to start a manual run was to find the lock
@@ -21,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Standing policy reminders (removal stays manual, feed versions are evidence
+  only, and similar) are notes, not warnings, so real warnings stand out.
+- A degraded preflight no longer tells a manual run that heavy work is
+  deferred; only a scheduled run defers, and only it says so.
+
 - Preflight: Backblaze counts as the backup. A `bz_done_*.dat` transmit log
   newer than 7 days under `/Library/Backblaze.bzpkg/bzdata/bzbackup/bzdatacenter`
   reports `backup=backblaze`; Time Machine is only the fallback signal
@@ -30,6 +44,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   destination (`tests/runner/preflight-backup.sh`).
 
 ### Fixed
+
+- Homebrew: a formula that is poured but left unlinked now gets one error
+  naming it and `brew link --overwrite --dry-run <name>`, instead of only the
+  link conflict listing. On 2026-10-11 pillow and pydantic were blocked by
+  pillow and typing_extensions that pip had installed into Homebrew's Python
+  site-packages; removing the pip copies and running `brew link` fixed the
+  machine (`tests/plugins/homebrew.sh`).
+- Homebrew: a cask disabled upstream (jet-pilot) is reported as a warning
+  and not "upgraded": brew lists it as outdated forever and its upgrade
+  exits 0 having done nothing.
+- Yarn: when `yarn --version` prints no version, the plugin fails with what
+  yarn said instead of reporting "Detected version .x"
+  (`tests/plugins/yarn-version.sh`).
+- Mole: the version is the first non-empty line of `mo --version`, which
+  opens with a blank line, so it is no longer reported as `unavailable`
+  (`tests/plugins/mole.sh`).
+- Microsoft AutoUpdate: "XPC Connection to updater invalidated" is a skip with
+  that reason, not an empty inventory reported as success.
 
 - macOS plugin (`plugins/osx.sh` v2.2.0): the download runs without a
   controlling terminal. `softwareupdate -d -r` opens `/dev/tty` for the

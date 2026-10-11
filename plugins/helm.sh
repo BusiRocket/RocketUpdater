@@ -75,6 +75,6 @@ update_helm() {
         plugin_status=1
     fi
 
-    echo_warning "Helm plugin updates remain manual because update hooks execute plugin scripts"
+    echo_note "Helm plugin updates remain manual because update hooks execute plugin scripts"
     return "$plugin_status"
 }

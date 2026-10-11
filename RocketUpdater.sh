@@ -18,6 +18,8 @@ source "$SCRIPT_DIR/lib/echo_warning.sh"
 source "$SCRIPT_DIR/lib/echo_error.sh"
 # shellcheck source=lib/echo_skip.sh
 source "$SCRIPT_DIR/lib/echo_skip.sh"
+# shellcheck source=lib/echo_note.sh
+source "$SCRIPT_DIR/lib/echo_note.sh"
 
 EVENT_DIRECTORY="$HOME/Library/Logs/RocketUpdater"
 ROCKETUPDATER_EVENT_LOG="${ROCKETUPDATER_EVENT_LOG:-$EVENT_DIRECTORY/events.log}"
@@ -106,8 +108,24 @@ source "$SCRIPT_DIR/lib/command_exists.sh"
 source "$SCRIPT_DIR/lib/read_plugin_metadata.sh"
 # shellcheck source=lib/backblaze_backup_recent.sh
 source "$SCRIPT_DIR/lib/backblaze_backup_recent.sh"
+# shellcheck source=lib/print_preflight_lines.sh
+source "$SCRIPT_DIR/lib/print_preflight_lines.sh"
+# shellcheck source=lib/print_preflight_summary.sh
+source "$SCRIPT_DIR/lib/print_preflight_summary.sh"
 # shellcheck source=lib/run_preflight.sh
 source "$SCRIPT_DIR/lib/run_preflight.sh"
+# shellcheck source=lib/format_duration.sh
+source "$SCRIPT_DIR/lib/format_duration.sh"
+# shellcheck source=lib/strip_terminal_controls.sh
+source "$SCRIPT_DIR/lib/strip_terminal_controls.sh"
+# shellcheck source=lib/emit_ui_ticks.sh
+source "$SCRIPT_DIR/lib/emit_ui_ticks.sh"
+# shellcheck source=lib/render_plugin_progress.sh
+source "$SCRIPT_DIR/lib/render_plugin_progress.sh"
+# shellcheck source=lib/run_plugin_compact.sh
+source "$SCRIPT_DIR/lib/run_plugin_compact.sh"
+# shellcheck source=lib/print_plugin_result.sh
+source "$SCRIPT_DIR/lib/print_plugin_result.sh"
 
 ROCKETUPDATER_VERSION="1.0.0"
 RUN_STARTED_AT=$(/bin/date '+%s')
@@ -128,6 +146,10 @@ log_runner_end() {
     if declare -F stop_sudo_keepalive >/dev/null 2>&1; then
         stop_sudo_keepalive
     fi
+    # An interrupted progress line would leave the cursor hidden.
+    if [ "${ROCKETUPDATER_COMPACT:-false}" = true ]; then
+        printf '\r\033[K\033[?25h'
+    fi
 }
 
 trap 'log_runner_end $?' EXIT
@@ -135,6 +157,7 @@ log_event info run_start '' started 0 "RocketUpdater v$ROCKETUPDATER_VERSION"
 
 ROCKETUPDATER_MODE=manual
 ROCKETUPDATER_PREFLIGHT_ONLY=false
+ROCKETUPDATER_VERBOSE=${ROCKETUPDATER_VERBOSE:-false}
 SELECTED_PLUGIN=""
 CLEANUP_OPERATION=""
 
@@ -151,6 +174,10 @@ parse_cli_arguments() {
                 return 78
             fi
             saw_scheduled=true
+            shift
+            ;;
+        --verbose)
+            ROCKETUPDATER_VERBOSE=true
             shift
             ;;
         --force)
@@ -214,6 +241,30 @@ if ! parse_cli_arguments "$@"; then
     exit 78
 fi
 
+# The compact interface is for a person watching a terminal: launchd, pipes,
+# --verbose and NO_COLOR all keep the full streamed output.
+ROCKETUPDATER_COMPACT=false
+if [ "$ROCKETUPDATER_MODE" = manual ] && [ "$ROCKETUPDATER_VERBOSE" != true ] &&
+    [ "$ROCKETUPDATER_VERBOSE" != 1 ] && [ -t 1 ] && [ -z "${NO_COLOR:-}" ] &&
+    [ "${TERM:-dumb}" != dumb ]; then
+    ROCKETUPDATER_COMPACT=true
+fi
+export ROCKETUPDATER_COMPACT
+
+# Under the compact interface the full output of every plugin goes here.
+RUN_LOG="$EVENT_DIRECTORY/run-$RUN_ID.log"
+if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+    previous_umask=$(umask)
+    umask 077
+    if ! : >"$RUN_LOG"; then
+        umask "$previous_umask"
+        print_message plain "RocketUpdater could not open its run log" >&2
+        exit 78
+    fi
+    umask "$previous_umask"
+    printf '\n  \033[1mRocketUpdater\033[0m \033[90mv%s\033[0m\n\n' "$ROCKETUPDATER_VERSION"
+fi
+
 if [ "$ROCKETUPDATER_MODE" = clean ]; then
     if [ "${NONINTERACTIVE:-0}" = 1 ] || [ "${ROCKETUPDATER_LAUNCHD:-0}" = 1 ] ||
         [ ! -t 0 ] || [ ! -t 1 ]; then
@@ -238,9 +289,15 @@ fi
 # failure, so preflight-only reporting still exits 0.
 ROCKETUPDATER_DEFER_RUN_ACTIONS=false
 if [ "$PREFLIGHT_STATUS" -eq 20 ]; then
-    echo_warning "Preflight is degraded; heavy scheduled work is deferred."
-    if [ "$ROCKETUPDATER_MODE" = scheduled ] && [ -z "$SELECTED_PLUGIN" ]; then
-        ROCKETUPDATER_DEFER_RUN_ACTIONS=true
+    # Only a scheduled run defers anything; a manual run reports the reason in
+    # its preflight lines and carries on, so saying "deferred" there misled.
+    if [ "$ROCKETUPDATER_MODE" = scheduled ]; then
+        echo_warning "Preflight is degraded; heavy scheduled work is deferred."
+        if [ -z "$SELECTED_PLUGIN" ]; then
+            ROCKETUPDATER_DEFER_RUN_ACTIONS=true
+        fi
+    elif [ "$ROCKETUPDATER_COMPACT" != true ]; then
+        echo_warning "Preflight is degraded; a manual run carries on regardless."
     fi
 fi
 
@@ -255,7 +312,9 @@ FAILED_PLUGINS=0
 SKIPPED_PLUGINS=0
 FAILED_PLUGIN_LIST=""
 
-echo_info "RocketUpdater v$ROCKETUPDATER_VERSION - starting system update"
+if [ "$ROCKETUPDATER_COMPACT" != true ]; then
+    echo_info "RocketUpdater v$ROCKETUPDATER_VERSION - starting system update"
+fi
 
 # Ask for root once, here, while stdin is still the terminal. Plugins run with
 # no stdin on purpose, so they cannot prompt themselves without stalling the
@@ -483,15 +542,28 @@ run_plugin_record() {
         plugin_function="update_$plugin"
     fi
 
-    echo_info "Updating $plugin_name..."
-
     set +e
-    /opt/homebrew/bin/timeout --kill-after=30s "$plugin_timeout_seconds" \
-        /bin/bash "$SCRIPT_DIR/scripts/run-plugin.sh" "$plugin_file" "$plugin_function" </dev/null
-    plugin_status=$?
+    if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+        local items_file
+        items_file=$(/usr/bin/mktemp -t rocketupdater-items) || items_file=/dev/null
+        printf '\n==> %s (%s)\n' "$plugin_name" "$plugin_function" >>"$RUN_LOG"
+        run_plugin_compact "$SCRIPT_DIR" "$plugin_name" "$plugin_timeout_seconds" \
+            "$plugin_file" "$plugin_function" "$items_file" "$RUN_LOG"
+        plugin_status=$?
+    else
+        echo_info "Updating $plugin_name..."
+        /opt/homebrew/bin/timeout --kill-after=30s "$plugin_timeout_seconds" \
+            /bin/bash "$SCRIPT_DIR/scripts/run-plugin.sh" "$plugin_file" "$plugin_function" </dev/null
+        plugin_status=$?
+    fi
     set -e
     plugin_finished_at=$(/bin/date '+%s')
     plugin_duration=$((plugin_finished_at - plugin_started_at))
+
+    if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+        print_plugin_result "$plugin_status" "$plugin_name" "$plugin_duration" "$items_file"
+        [ "$items_file" = /dev/null ] || /bin/rm -f -- "$items_file"
+    fi
 
     case $plugin_status in
     0)
@@ -500,20 +572,20 @@ run_plugin_record() {
         ;;
     20)
         SKIPPED_PLUGINS=$((SKIPPED_PLUGINS + 1))
-        echo_skip "Plugin $plugin skipped (status 20)."
+        [ "$ROCKETUPDATER_COMPACT" = true ] || echo_skip "Plugin $plugin skipped (status 20)."
         log_event info plugin_end "$plugin" skipped "$plugin_duration" "$plugin_function returned status 20"
         ;;
     124 | 137)
         FAILED_PLUGINS=$((FAILED_PLUGINS + 1))
         append_failed_plugin "$plugin"
-        echo_error "Plugin $plugin timed out (status $plugin_status)."
+        [ "$ROCKETUPDATER_COMPACT" = true ] || echo_error "Plugin $plugin timed out (status $plugin_status)."
         log_event error plugin_end "$plugin" failed "$plugin_duration" \
             "$plugin_function timed out with status $plugin_status"
         ;;
     *)
         FAILED_PLUGINS=$((FAILED_PLUGINS + 1))
         append_failed_plugin "$plugin"
-        echo_error "Command failed: $plugin_function (status $plugin_status)"
+        [ "$ROCKETUPDATER_COMPACT" = true ] || echo_error "Command failed: $plugin_function (status $plugin_status)"
         log_event error plugin_end "$plugin" failed "$plugin_duration" \
             "$plugin_function returned status $plugin_status"
         ;;
@@ -527,7 +599,11 @@ load_and_update_plugins() {
     local plugin
     local plugin_order=""
 
-    echo_info 'Loading plugins...'
+    if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+        printf '\n'
+    else
+        echo_info 'Loading plugins...'
+    fi
 
     while IFS= read -r record <&3; do
         [ -n "$record" ] || continue
@@ -539,7 +615,7 @@ load_and_update_plugins() {
         fi
     done 3<<<"$PLUGIN_RECORDS"
 
-    echo_info "Order: $plugin_order"
+    [ "$ROCKETUPDATER_COMPACT" = true ] || echo_info "Order: $plugin_order"
 
     # The record list has its own descriptor so child commands cannot consume
     # it, and the loop remains in the parent so only the parent updates counts.
@@ -578,6 +654,28 @@ display_summary() {
     fi
 }
 
+# The compact summary closes the run the way Mole closes a clean: one rule,
+# the counts, which plugins failed, and where the full output lives.
+display_compact_summary() {
+    local elapsed
+    local rule='──────────────────────────────────────────────────────────────'
+
+    format_duration elapsed $(($(/bin/date '+%s') - RUN_STARTED_AT))
+    printf '\n  \033[90m%s\033[0m\n' "$rule"
+    printf '  \033[1mDone in %s\033[0m  \033[0;32m%d ok\033[0m · ' "$elapsed" "$SUCCESSFUL_PLUGINS"
+    if [ "$FAILED_PLUGINS" -gt 0 ]; then
+        printf '\033[0;31m%d failed\033[0m · ' "$FAILED_PLUGINS"
+    else
+        printf '0 failed · '
+    fi
+    printf '\033[90m%d skipped\033[0m\n' "$SKIPPED_PLUGINS"
+    if [ "$FAILED_PLUGINS" -gt 0 ]; then
+        printf '  \033[0;31mFailed:\033[0m %s\n' "$FAILED_PLUGIN_LIST"
+    fi
+    printf '  \033[90mFull log: ~%s\033[0m\n' "${RUN_LOG#"$HOME"}"
+    printf '  \033[90m%s\033[0m\n\n' "$rule"
+}
+
 # Validate all selected plugin metadata before sudo or any plugin execution.
 if ! load_plugin_records "$SELECTED_PLUGIN"; then
     exit 78
@@ -595,17 +693,24 @@ fi
 
 if [ -n "$SELECTED_PLUGIN" ]; then
     run_plugin_record "$PLUGIN_RECORDS"
+    if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+        printf '\n  \033[90mFull log: ~%s\033[0m\n\n' "${RUN_LOG#"$HOME"}"
+    fi
     if [ "$FAILED_PLUGINS" -gt 0 ]; then
         exit 1
     fi
     exit 0
 fi
 
-echo_info 'Updating plugins...'
+[ "$ROCKETUPDATER_COMPACT" = true ] || echo_info 'Updating plugins...'
 load_and_update_plugins
 
 # Display summary
-display_summary
+if [ "$ROCKETUPDATER_COMPACT" = true ]; then
+    display_compact_summary
+else
+    display_summary
+fi
 
 if [ "$FAILED_PLUGINS" -gt 0 ]; then
     exit 1

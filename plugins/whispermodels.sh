@@ -28,6 +28,6 @@ update_whispermodels() {
 
     find "$HOME/.cache/huggingface/hub" -maxdepth 1 -type d \
         -iname '*whisper*' -print -exec du -sh {} \; 2>/dev/null || true
-    echo_warning "The 6.3 GiB OpenAI checkpoint set is one manual decision; mlx-whisper uses the separate Hugging Face cache"
+    echo_note "The 6.3 GiB OpenAI checkpoint set is one manual decision; mlx-whisper uses the separate Hugging Face cache"
     return 0
 }

@@ -14,13 +14,30 @@ cat >"$FIXTURE_DIR/bin/brew" <<'EOF'
 printf '%s\n' "$*" >>"$PLUGIN_TEST_STATE/brew.log"
 case "$*" in
 'update') exit 0 ;;
-'outdated --formula --quiet') exit 0 ;;
+'outdated --formula --quiet')
+    printf 'conflicted\nkegonly\n'
+    exit 0
+    ;;
+'upgrade --formula conflicted') exit 1 ;;
+'upgrade --formula kegonly') exit 1 ;;
+'info --json=v1 --formula conflicted')
+    printf '[{"name": "conflicted", "keg_only": false, "linked_keg": null}]\n'
+    exit 0
+    ;;
+'info --json=v1 --formula kegonly')
+    printf '[{"name": "kegonly", "keg_only": true, "linked_keg": null}]\n'
+    exit 0
+    ;;
 'outdated --cask --quiet')
-    printf 'failcask\ngoodcask\n'
+    printf 'failcask\ngoodcask\ndeadcask\n'
     exit 0
     ;;
 'upgrade --cask --no-ask --no-quit failcask') exit 1 ;;
 'upgrade --cask --no-ask --no-quit goodcask') exit 0 ;;
+'info --json=v2 --cask deadcask')
+    printf '{"casks": [{"token": "deadcask", "disabled": true}]}\n'
+    exit 0
+    ;;
 *) exit 0 ;;
 esac
 EOF
@@ -35,6 +52,8 @@ PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" PLUGIN_TEST_STATE="$STATE_DIR" /bin/bash -
     source "'"$ROOT_DIR"'/lib/echo_warning.sh"
     source "'"$ROOT_DIR"'/lib/echo_error.sh"
     source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+    source "'"$ROOT_DIR"'/lib/echo_note.sh"
+    source "'"$ROOT_DIR"'/lib/echo_change.sh"
     source "'"$ROOT_DIR"'/lib/command_exists.sh"
     source "'"$ROOT_DIR"'/plugins/homebrew.sh"
     update_homebrew
@@ -60,6 +79,30 @@ fi
 
 if ! grep -q 'failcask' "$STATE_DIR/output"; then
     echo "RED homebrew plugin: the failed item is not named in the plugin output"
+    exit 1
+fi
+
+# A formula poured but left unlinked is named with the way to inspect it; a
+# keg-only formula is unlinked by design and gets no such message.
+if ! grep -q 'conflicted is installed but not linked' "$STATE_DIR/output"; then
+    echo "RED homebrew plugin: an unlinked keg was not reported as a link conflict"
+    exit 1
+fi
+if grep -q 'kegonly is installed but not linked' "$STATE_DIR/output"; then
+    echo "RED homebrew plugin: a keg-only formula was reported as a link conflict"
+    exit 1
+fi
+
+if ! grep -q 'goodcask' "$STATE_DIR/output" ||
+    ! grep -q '↑  cask goodcask' "$STATE_DIR/output"; then
+    echo "RED homebrew plugin: the upgraded cask is not reported as a change"
+    exit 1
+fi
+
+# A disabled cask stays outdated forever and brew "upgrades" it as a no-op.
+if grep -q '^upgrade --cask --no-ask --no-quit deadcask$' "$STATE_DIR/brew.log" ||
+    ! grep -q 'cask deadcask is disabled upstream' "$STATE_DIR/output"; then
+    echo "RED homebrew plugin: a disabled cask was upgraded instead of reported"
     exit 1
 fi
 

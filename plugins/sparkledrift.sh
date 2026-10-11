@@ -61,6 +61,6 @@ update_sparkledrift() {
             "$app_name" "$local_version" "$feed_version"
     done
 
-    echo_warning "Feed versions are evidence only; channel and ordering are not authoritative"
+    echo_note "Feed versions are evidence only; channel and ordering are not authoritative"
     return 0
 }

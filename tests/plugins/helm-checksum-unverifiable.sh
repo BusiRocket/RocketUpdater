@@ -69,6 +69,8 @@ PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" \
     source "'"$ROOT_DIR"'/lib/echo_warning.sh"
     source "'"$ROOT_DIR"'/lib/echo_error.sh"
     source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+    source "'"$ROOT_DIR"'/lib/echo_note.sh"
+    source "'"$ROOT_DIR"'/lib/echo_change.sh"
     source "'"$ROOT_DIR"'/lib/command_exists.sh"
     source "'"$ROOT_DIR"'/lib/helm_plugin_release_source.sh"
     source "'"$ROOT_DIR"'/lib/helm_reference_digest.sh"

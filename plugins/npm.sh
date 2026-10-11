@@ -129,6 +129,7 @@ update_npm() {
                             npm install -g "${pkg_name}@${new_version}"
                     fi
                     case $? in
+                    0) echo_change "$pkg_name $new_version" ;;
                     1)
                         has_failures=1
                         echo_warning "Failed to update global package: $pkg_name@$new_version"

@@ -4,6 +4,25 @@
 
 ## 2026
 
+### 2026-10
+
+- [x] 2026-10-11 — **Interface and run failures:** Mole-style compact output
+  for manual runs; homebrew, yarn, mole and msupdate failures from the
+  2026-10-11 run.
+  - Result: manual terminal runs show a preflight line, a spinner per plugin
+    and one status block per plugin, with the full output in
+    `~/Library/Logs/RocketUpdater/run-<RUN_ID>.log`; `--verbose` keeps the
+    streamed output. Kept in bash rather than Node: the run itself upgrades
+    the node formula, and launchd runs need no extra runtime. Homebrew's
+    pillow/pydantic failure was pip-installed pillow 12.2.0 and
+    typing_extensions in Homebrew's Python site-packages; the pip copies were
+    removed and both kegs linked. Disabled casks are reported, unlinked kegs
+    named, yarn's empty version fails with yarn's reason, mole's version
+    parses, msupdate's XPC failure is a skip.
+  - Evidence: `tests/runner/compact-ui.sh`, `tests/plugins/yarn-version.sh`,
+    `tests/plugins/homebrew.sh`, `tests/plugins/mole.sh`; full suite and
+    shellcheck green; real compact run 25 ok, 0 failed, 2 skipped in 5m46s.
+
 ### 2026-09
 
 - [x] 2026-09-29 — **Plugins:** PEAR upgrades died on "Failed opening

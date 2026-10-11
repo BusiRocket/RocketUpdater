@@ -38,6 +38,6 @@ update_cargosources() {
     du -sh "$source_root" "$cache_root" 2>&1
     printf 'cargo_sources extracted=%s archives=%s without_archive=%s\n' \
         "$source_count" "$archive_count" "$missing_count"
-    echo_warning "Never remove the whole registry source directory"
+    echo_note "Never remove the whole registry source directory"
     return 0
 }

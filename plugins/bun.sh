@@ -26,6 +26,6 @@ update_bun() {
     if [ -d "$cache_path" ]; then
         du -sh "$cache_path" 2>&1
     fi
-    echo_warning "Bun cache removal remains manual because the current cache is low value"
+    echo_note "Bun cache removal remains manual because the current cache is low value"
     return 0
 }

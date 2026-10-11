@@ -124,6 +124,36 @@ list_brew_outdated() {
     return 0
 }
 
+# formula_left_unlinked NAME succeeds when the formula is installed, is not
+# keg-only, and has no linked keg: the upgrade poured it, but `brew link` hit
+# files another installer owns. pip writing into Homebrew's Python
+# site-packages did exactly that to pillow and pydantic on 2026-10-11.
+formula_left_unlinked() {
+    local info
+
+    info=$(brew info --json=v1 --formula "$1" 2>/dev/null) || return 1
+    case $info in
+    *'"keg_only": true'* | *'"keg_only":true'*) return 1 ;;
+    esac
+    case $info in
+    *'"linked_keg": null'* | *'"linked_keg":null'*) return 0 ;;
+    esac
+    return 1
+}
+
+# cask_disabled NAME succeeds when the cask is disabled upstream. brew keeps
+# listing such a cask as outdated, and `brew upgrade` on it exits 0 having
+# done nothing, so jet-pilot "upgraded" on every run.
+cask_disabled() {
+    local info
+
+    info=$(brew info --json=v2 --cask "$1" 2>/dev/null) || return 1
+    case $info in
+    *'"disabled": true'* | *'"disabled":true'*) return 0 ;;
+    esac
+    return 1
+}
+
 update_homebrew() {
     if ! check_homebrew; then
         echo_skip "Homebrew is not installed"
@@ -179,9 +209,16 @@ update_homebrew() {
         if [ "$item" = node ]; then
             if ! run_node_formula_upgrade; then
                 failed_items="$failed_items $item"
+            else
+                echo_change "formula node"
             fi
         elif ! run_brew_step "Upgrade of formula $item" 1 brew upgrade --formula "$item"; then
             failed_items="$failed_items $item"
+            if formula_left_unlinked "$item"; then
+                echo_error "$item is installed but not linked: other files occupy its paths (often a pip install into Homebrew's Python). Inspect with: brew link --overwrite --dry-run $item"
+            fi
+        else
+            echo_change "formula $item"
         fi
     done 3<<<"$outdated_formulae"
 
@@ -194,10 +231,16 @@ update_homebrew() {
 
     while IFS= read -r item <&3; do
         [ -n "$item" ] || continue
+        if cask_disabled "$item"; then
+            echo_warning "cask $item is disabled upstream and can no longer be upgraded; replace or uninstall it"
+            continue
+        fi
         echo_info "Homebrew: Upgrading cask $item..."
         if ! run_brew_step "Upgrade of cask $item" 1 \
             brew upgrade --cask --no-ask --no-quit "$item"; then
             failed_items="$failed_items $item"
+        else
+            echo_change "cask $item"
         fi
     done 3<<<"$outdated_casks"
 

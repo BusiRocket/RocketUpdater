@@ -41,6 +41,8 @@ PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" PLUGIN_TEST_STATE="$STATE_DIR" /bin/bash -
     source "'"$ROOT_DIR"'/lib/echo_warning.sh"
     source "'"$ROOT_DIR"'/lib/echo_error.sh"
     source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+    source "'"$ROOT_DIR"'/lib/echo_note.sh"
+    source "'"$ROOT_DIR"'/lib/echo_change.sh"
     source "'"$ROOT_DIR"'/lib/command_exists.sh"
     source "'"$ROOT_DIR"'/plugins/homebrew.sh"
     update_homebrew

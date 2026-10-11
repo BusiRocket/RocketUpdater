@@ -23,9 +23,10 @@ report_mole() {
     local mole_path
     local mole_version
     mole_path=$(command -v mo)
-    # Mole exposes no version string on this build, so the binary hash is the
-    # authoritative identity of the target set this dry run describes.
-    mole_version=$(mo --version 2>/dev/null | head -1)
+    # The binary hash stays the authoritative identity of the target set this
+    # dry run describes. `mo --version` opens with a blank line (1.59.1), so
+    # the first non-empty line is the version.
+    mole_version=$(mo --version 2>/dev/null | /usr/bin/awk 'NF { print; exit }')
     [ -n "$mole_version" ] || mole_version=unavailable
     printf 'mole version=%s sha256=%s\n' \
         "$mole_version" \
@@ -57,7 +58,7 @@ report_mole() {
         return 1
     fi
 
-    echo_warning "Mole removal stays manual; the dry run above is evidence, not action"
+    echo_note "Mole removal stays manual; the dry run above is evidence, not action"
     return 0
 }
 

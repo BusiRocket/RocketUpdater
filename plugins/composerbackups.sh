@@ -30,6 +30,6 @@ update_composerbackups() {
 
     printf '%s\n' "$candidates"
     du -sh "$composer_home" 2>&1
-    echo_warning "Backup removal remains manual"
+    echo_note "Backup removal remains manual"
     return 0
 }

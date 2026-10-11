@@ -17,6 +17,10 @@ source "$ROOT_DIR/lib/echo_warning.sh" || exit 78
 source "$ROOT_DIR/lib/echo_error.sh" || exit 78
 # shellcheck source=../lib/echo_skip.sh
 source "$ROOT_DIR/lib/echo_skip.sh" || exit 78
+# shellcheck source=../lib/echo_note.sh
+source "$ROOT_DIR/lib/echo_note.sh" || exit 78
+# shellcheck source=../lib/echo_change.sh
+source "$ROOT_DIR/lib/echo_change.sh" || exit 78
 
 if [ "$#" -ne 2 ]; then
     print_message plain "Usage: $0 FILE FUNCTION" >&2

@@ -22,6 +22,6 @@ update_yarnmetadata() {
 
     du -sh "$metadata_root" 2>&1
     printf 'yarn_metadata files_older_than_30_days=%s\n' "$old_file_count"
-    echo_warning "Metadata deletion remains manual"
+    echo_note "Metadata deletion remains manual"
     return 0
 }

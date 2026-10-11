@@ -14,7 +14,8 @@ cat >"$FIXTURE_DIR/bin/mo" <<'EOF'
 printf '%s\n' "$*" >>"$PLUGIN_TEST_STATE/mo.log"
 case "$*" in
 '--version')
-    printf 'mole 1.53.0\n'
+    # Real Mole prints a blank line before the version.
+    printf '\nmole 1.53.0\n'
     exit 0
     ;;
 'clean --dry-run')
@@ -37,6 +38,8 @@ run_report() {
         source "'"$ROOT_DIR"'/lib/echo_warning.sh"
         source "'"$ROOT_DIR"'/lib/echo_error.sh"
         source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+        source "'"$ROOT_DIR"'/lib/echo_note.sh"
+        source "'"$ROOT_DIR"'/lib/echo_change.sh"
         source "'"$ROOT_DIR"'/lib/command_exists.sh"
         source "'"$ROOT_DIR"'/plugins/mole.sh"
         report_mole

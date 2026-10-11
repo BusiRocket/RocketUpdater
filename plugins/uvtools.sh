@@ -40,10 +40,18 @@ update_uvtools() {
     while IFS= read -r tool_name <&3; do
         [ -n "$tool_name" ] || continue
         echo_info "uv: Upgrading $tool_name..."
-        if ! UV_LOCK_TIMEOUT=30 uv tool upgrade --no-progress "$tool_name" 2>&1; then
+        local upgrade_output
+        if ! upgrade_output=$(UV_LOCK_TIMEOUT=30 uv tool upgrade --no-progress "$tool_name" 2>&1); then
+            printf '%s\n' "$upgrade_output"
             has_failures=1
             echo_warning "uv tool upgrade failed or was locked: $tool_name"
+            continue
         fi
+        printf '%s\n' "$upgrade_output"
+        case $upgrade_output in
+        *'Nothing to upgrade'*) ;;
+        *) echo_change "uv tool $tool_name" ;;
+        esac
     done 3<<<"$tools"
 
     if [ "$has_failures" -ne 0 ]; then

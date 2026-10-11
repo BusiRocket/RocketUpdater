@@ -17,8 +17,20 @@ check_corepack() {
     command_exists corepack
 }
 
+# get_yarn_version prints the major version, or fails with whatever yarn said
+# on stderr: a Corepack shim that cannot fetch its pinned release prints
+# nothing on stdout, and the run reported "Detected version .x".
 get_yarn_version() {
-    yarn --version </dev/null 2>/dev/null | cut -d. -f1
+    local output
+    local major
+
+    output=$(yarn --version </dev/null 2>&1)
+    major=$(printf '%s\n' "$output" | /usr/bin/awk -F. '/^[0-9]+\.[0-9]+/ { print $1; exit }')
+    if [ -z "$major" ]; then
+        printf '%s\n' "$output" >&2
+        return 1
+    fi
+    printf '%s\n' "$major"
 }
 
 report_yarn_caches() {
@@ -47,7 +59,10 @@ update_yarn() {
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
     local yarn_major_version
-    yarn_major_version=$(get_yarn_version)
+    if ! yarn_major_version=$(get_yarn_version); then
+        echo_error "Yarn did not report its version; see the output above"
+        return 1
+    fi
 
     echo_info "Yarn: Detected version $yarn_major_version.x"
 

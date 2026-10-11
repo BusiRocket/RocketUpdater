@@ -39,6 +39,8 @@ run_osx() {
         source "'"$ROOT_DIR"'/lib/echo_warning.sh"
         source "'"$ROOT_DIR"'/lib/echo_error.sh"
         source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+        source "'"$ROOT_DIR"'/lib/echo_note.sh"
+        source "'"$ROOT_DIR"'/lib/echo_change.sh"
         source "'"$ROOT_DIR"'/lib/command_exists.sh"
         source "'"$ROOT_DIR"'/lib/list_macos_os_updates.sh"
         source "'"$ROOT_DIR"'/lib/run_without_controlling_tty.sh"

@@ -170,17 +170,14 @@ run_preflight() {
         ssh_agent=present
     fi
 
-    print_message plain "preflight os=$os_version build=$os_build arch=$machine_arch bash=$BASH_VERSION"
-    print_message plain "preflight path=$PATH"
-    print_message plain "preflight disk=${disk_free_kib}KiB_free"
-    print_message plain "preflight backup=$backup_state"
-    print_message plain "preflight power=$power_state"
-    print_message plain "preflight load=$load_one cpus=$cpu_count cpu_idle=$cpu_idle"
-    print_message plain "preflight FDA=$fda_state"
-    print_message plain "preflight DNS=$dns_state"
-    print_message plain "preflight sudo_mode=$mode sudo_list=$sudo_list"
-    print_message plain "preflight ssh_agent=$ssh_agent"
-    print_message plain "preflight binaries=$binaries_status"
+    if [ "${ROCKETUPDATER_COMPACT:-false}" = true ]; then
+        print_preflight_summary "$os_version" "$machine_arch" "$disk_free_kib" "$power_state" \
+            "$backup_state" "$dns_state" "$load_one" "$cpu_count" "$degraded_reasons"
+    else
+        print_preflight_lines "$os_version" "$os_build" "$machine_arch" "$disk_free_kib" \
+            "$backup_state" "$power_state" "$load_one" "$cpu_count" "$cpu_idle" "$fda_state" \
+            "$dns_state" "$mode" "$sudo_list" "$ssh_agent" "$binaries_status"
+    fi
 
     if [ "$backup_state" = none ]; then
         echo_warning "No backup seen (no Backblaze transmit in 7 days, no Time Machine destination); destructive work stays manual."

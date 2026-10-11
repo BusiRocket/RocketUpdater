@@ -24,6 +24,14 @@ update_msupdate() {
     fi
 
     printf '%s\n' "$output"
-    echo_warning "Microsoft installs remain manual while Microsoft applications are closed"
+    # msupdate exits 0 even when its helper is not running, after printing
+    # only this line; that is no inventory at all, not an empty one.
+    case $output in
+    *"XPC Connection to updater invalidated"*)
+        echo_skip "Microsoft AutoUpdate did not answer (XPC connection invalidated); no inventory this run"
+        return 20
+        ;;
+    esac
+    echo_note "Microsoft installs stay manual; run them from Microsoft AutoUpdate"
     return 0
 }

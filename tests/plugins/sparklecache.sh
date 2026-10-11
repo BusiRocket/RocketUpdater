@@ -58,6 +58,8 @@ run_report() {
         source "'"$ROOT_DIR"'/lib/echo_warning.sh"
         source "'"$ROOT_DIR"'/lib/echo_error.sh"
         source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+        source "'"$ROOT_DIR"'/lib/echo_note.sh"
+        source "'"$ROOT_DIR"'/lib/echo_change.sh"
         source "'"$ROOT_DIR"'/lib/command_exists.sh"
         source "'"$ROOT_DIR"'/lib/list_sparkle_obsolete_candidates.sh"
         source "'"$ROOT_DIR"'/plugins/sparklecache.sh"

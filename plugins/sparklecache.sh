@@ -49,7 +49,7 @@ report_sparklecache() {
         du -sk "$sparkle_base/PersistentDownloads" 2>&1
     fi
 
-    echo_warning "Removal happens only through the supervised --clean sparkle command"
+    echo_note "Removal happens only through the supervised --clean sparkle command"
     return 0
 }
 

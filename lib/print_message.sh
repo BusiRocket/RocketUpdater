@@ -7,6 +7,14 @@ print_message() {
     local reset=''
     shift
 
+    # The compact interface draws its own lines, so under it every leveled
+    # message travels as one record (RS, level, tab, text) the renderer parses;
+    # plain lines stay raw output like anything a tool prints.
+    if [ "${ROCKETUPDATER_UI:-}" = compact ] && [ "$level" != plain ]; then
+        printf '\036%s\t%s\n' "$level" "$*"
+        return 0
+    fi
+
     case $level in
     error)
         color='\033[0;31m'
@@ -27,6 +35,14 @@ print_message() {
     warning)
         color='\033[1;33m'
         prefix='⚠️  '
+        ;;
+    note)
+        color='\033[0;90m'
+        prefix='⊙  '
+        ;;
+    change)
+        color='\033[0;32m'
+        prefix='↑  '
         ;;
     esac
 

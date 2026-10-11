@@ -44,6 +44,15 @@
 Execute `./RocketUpdater.sh` to run every plugin in a supervised update pass, or
 `./RocketUpdater.sh <plugin>` to run one plugin. Additional modes:
 
+- `./RocketUpdater.sh --verbose` (combinable with a plugin name) — streams every
+  line each plugin prints, as scheduled runs and pipes always do. Without it, a
+  manual run in a terminal shows the compact interface: one-line machine
+  summary, a live spinner per plugin, then one status line per plugin with the
+  changes (`↑`), warnings (`!`), errors (`✗`) and notes (`⊙`) worth keeping. The
+  full output of that run goes to
+  `~/Library/Logs/RocketUpdater/run-<RUN_ID>.log`, named in the summary.
+  `NO_COLOR` or `ROCKETUPDATER_VERBOSE=1` also select the streamed output.
+
 - `./RocketUpdater.sh --scheduled` — unattended mode for launchd: updates and
   reports only, never deletes, and never prompts for sudo.
 - `./RocketUpdater.sh --preflight-only` (combinable with `--scheduled`) — runs

@@ -24,7 +24,7 @@ update_deno() {
     origin_storage=$(printf '%s\n' "$info" |
         sed -n 's/.*"originStorage": *"\([^"]*\)".*/\1/p')
     if [ -n "$origin_storage" ] && [ -d "$origin_storage" ]; then
-        echo_warning "Deno origin storage exists at $origin_storage; preserve it"
+        echo_note "Deno origin storage exists at $origin_storage; preserve it"
     fi
 
     if ! deno clean --dry-run 2>&1; then
