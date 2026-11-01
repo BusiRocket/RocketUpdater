@@ -6,6 +6,16 @@
 
 ## 2026
 
+### 2026-11
+
+- [-] 2026-11-01 — **Disk reclamation:** Ollama — back in use after the 2026-09-08 removal: `ollama list` shows
+  `qwen3.6:35b` (22 GB) and `qwen3.6:35b-mlx` (23 GB) pulled on 2026-09-17,
+  `~/.ollama/models` is 43 GB, the brew service is stopped. Both are registry
+  models and re-pullable; only the owner knows whether both variants are
+  needed.
+  - Result: Re-measured read-only on 2026-11-01. MacBook: qwen3.6:35b-mlx is gone (removed by the owner), qwen3.6:35b (22 GB, pulled 2026-09-16) stays, gpt-oss:20b (13 GB) was pulled 2026-10-10, gemma4:12b (7.6 GB) 2026-09-19; ~/.ollama/models is 58 GB and the brew service is started. Mac mini: qwen3.5:4b/9b, gemma4:e2b/e4b/12b and ornith-1.5:9b pulled 2026-09-17..19, 38 GB, service started.
+  - Resolution: The owner answered the question by removing the MLX variant and keeps pulling new models into a running service, so Ollama is in active use on both machines and no longer a reclamation candidate; reopen only if the owner flags it.
+
 ### 2026-10
 
 - [x] 2026-10-11 — **Mole cleans on manual runs; run logs pruned.**
