@@ -33,11 +33,6 @@ archived to the mini, pruned, or rejected on 2026-09-08 (see `TODO_LOG.md`).
   VM and shutting Windows down properly. It discards the session saved on
   21 June, which is why it is the owner's call and not a maintenance step. The
   VM is still `suspended` on 2026-09-19; a full copy sits on the mini.
-- [ ] Ollama — back in use after the 2026-09-08 removal: `ollama list` shows
-  `qwen3.6:35b` (22 GB) and `qwen3.6:35b-mlx` (23 GB) pulled on 2026-09-17,
-  `~/.ollama/models` is 43 GB, the brew service is stopped. Both are registry
-  models and re-pullable; only the owner knows whether both variants are
-  needed.
 - [ ] Claude and Claude-favish application bundles — 14 GiB and 12 GiB under
   `~/Library/Application Support` on 2026-09-19. Decision: confirm both
   applications and local agents are stopped and accept the reprovisioning cost

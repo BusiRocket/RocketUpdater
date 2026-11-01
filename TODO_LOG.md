@@ -6,6 +6,17 @@
 
 ## 2026
 
+### 2026-11
+
+- [-] 2026-11-01 — **Disk reclamation:** Ollama — back in use after the 2026-09-08 removal: `ollama list` shows
+  `qwen3.6:35b` (22 GB) and `qwen3.6:35b-mlx` (23 GB) pulled on 2026-09-17,
+  `~/.ollama/models` is 43 GB, the brew service is stopped. Both are registry
+  models and re-pullable; only the owner knows whether both variants are
+  needed.
+  - Result: Re-measured read-only on 2026-11-01, nothing deleted. MacBook (`ssh macbook`): `ollama list` no longer shows qwen3.6:35b-mlx (who removed it, and when, is not recorded); it shows qwen3.6:35b (22 GB, manifest 2026-09-16), gpt-oss:20b (13 GB, manifest 2026-10-10), gemma4:12b (7.6 GB, manifest 2026-09-19) and the glm-5:cloud stub; `du -sh ~/.ollama/models` 58G; `brew services list` shows ollama started, `ollama serve` running since 2026-10-27; `df -h /` 54 GiB free. Mac mini: qwen3.5:4b/9b, gemma4:e2b/e4b/12b and ornith-1.5:9b (manifests 2026-09-17..19), `du` 38G, service started, 273 GiB free.
+  - Evidence of inference use, not just a running service: `grep -E 'POST +"/api/(chat|generate|embed)' /opt/homebrew/var/log/ollama.log` counts 109009 requests on the MacBook, the latest on 2026-10-28, and 425 on the mini, the latest on 2026-09-19. The brain note on structured-output summarization (2026-10-10) records Atrium synthesis runs against qwen3.6:35b and gpt-oss:20b. So the MacBook is in active use; the mini's models have been idle for six weeks.
+  - Resolution: The variant question is moot because only one qwen3.6:35b variant remains. The rest stays: every model is a registry model and re-pullable, both disks have room (54 and 273 GiB free), and the MacBook log shows current use. Not a reclamation candidate now; reopen if either disk runs short, starting with the idle mini models or qwen3.6:35b on the MacBook.
+
 ### 2026-10
 
 - [x] 2026-10-11 — **Mole cleans on manual runs; run logs pruned.**
