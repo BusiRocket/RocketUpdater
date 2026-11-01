@@ -24,7 +24,9 @@ get_yarn_version() {
     local output
     local major
 
-    output=$(yarn --version </dev/null 2>&1)
+    # From $HOME: inside a checkout whose package.json pins pnpm, the Corepack
+    # shim refuses to run yarn at all, and the updater is often launched there.
+    output=$(cd "$HOME" && yarn --version </dev/null 2>&1)
     major=$(printf '%s\n' "$output" | /usr/bin/awk -F. '/^[0-9]+\.[0-9]+/ { print $1; exit }')
     if [ -z "$major" ]; then
         printf '%s\n' "$output" >&2
@@ -75,7 +77,7 @@ update_yarn() {
     else
         if check_corepack; then
             echo_info "Yarn Berry: Updating global yarn via corepack..."
-            if ! corepack prepare yarn@stable --activate 2>&1; then
+            if ! (cd "$HOME" && corepack prepare yarn@stable --activate) 2>&1; then
                 has_failures=1
                 echo_warning "corepack prepare yarn@stable failed"
             fi
