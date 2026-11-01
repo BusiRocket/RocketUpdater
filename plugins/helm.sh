@@ -38,6 +38,13 @@ update_helm() {
     fi
     printf '%s\n' "$inventory"
 
+    # Helm creates its plugin directory on the first install, so with nothing
+    # installed the directory check below would warn about nothing.
+    if [ -z "$(printf '%s\n' "$inventory" | awk 'NR > 1 && NF >= 2')" ]; then
+        echo_note "No Helm plugins installed; nothing to verify"
+        return 0
+    fi
+
     plugins_root=${HELM_PLUGINS:-$(helm env HELM_PLUGINS 2>/dev/null | tr -d '"')}
     if [ -z "$plugins_root" ] || [ ! -d "$plugins_root" ]; then
         echo_warning "Helm plugin directory could not be located; checksums not verified"

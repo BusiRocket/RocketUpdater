@@ -26,6 +26,12 @@ get_latest_stable_python() {
     fi
 }
 
+# list_pypi_packages prints the packages conda attributes to the pypi channel,
+# which are the only ones pip installed and may upgrade.
+list_pypi_packages() {
+    conda list -n "$1" 2>/dev/null | awk '!/^#/ && $NF == "pypi" { print $1 }'
+}
+
 update_conda_environment() {
     local env_name=$1
     local is_base=$2
@@ -50,19 +56,20 @@ update_conda_environment() {
         fi
     fi
 
-    # Update pip
-    echo "  → Updating pip..."
-    conda install -n "$env_name" pip -y 2>/dev/null || true
-    conda run -n "$env_name" pip install --upgrade pip 2>/dev/null || true
-
-    # Update pip packages using pip-review if available
-    echo "  → Updating pip packages..."
-    if conda run -n "$env_name" pip show pip-review >/dev/null 2>&1; then
-        conda run -n "$env_name" pip-review --auto 2>/dev/null || true
-    else
-        # Install pip-review and run it
-        if conda run -n "$env_name" pip install pip-review 2>/dev/null; then
-            conda run -n "$env_name" pip-review --auto 2>/dev/null || true
+    # pip only for what pip installed: conda lists those from the `pypi`
+    # channel. pip-review upgraded everything, conda's own packages included,
+    # and on 2026-08-24 left base with a pydantic-core that pydantic refused,
+    # which crashed every conda command. Base is conda itself, so pip stays out.
+    if [ "$is_base" != "true" ]; then
+        local pypi_packages
+        pypi_packages=$(list_pypi_packages "$env_name")
+        if [ -n "$pypi_packages" ]; then
+            echo "  → Updating pip-installed packages..."
+            local package
+            for package in $pypi_packages; do
+                conda run -n "$env_name" pip install --upgrade "$package" 2>&1 ||
+                    echo_warning "pip could not upgrade $package in $env_name"
+            done
         fi
     fi
 
@@ -77,7 +84,11 @@ update_conda() {
 
     # Update conda itself: use only conda-forge so the latest conda (e.g. 26.1.1) is installed
     echo_info "Conda: Updating Conda..."
-    conda update -n base -c conda-forge --override-channels conda -y 2>&1 || echo_warning "Conda self-update failed"
+    local has_failures=0
+    if ! conda update -n base -c conda-forge --override-channels conda -y 2>&1; then
+        echo_error "Conda self-update failed; see the output above"
+        has_failures=1
+    fi
 
     # Skip "conda update -n base --all" to avoid RemoveError (ruamel.yaml etc.); base is updated per-env below
 
@@ -96,6 +107,11 @@ update_conda() {
             fi
         fi
     done
+
+    if [ "$has_failures" -ne 0 ]; then
+        echo_error "Conda update completed with errors"
+        return 1
+    fi
 
     echo_success "Conda update completed"
     return 0
