@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-010074b3-25e2-460f-8a4b-91bb6b414b4c",
+  "title": "Cargo registry/src wholesale deletion",
+  "state": "cancelled",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "rejected."
+  ],
+  "closed": "2026-09-08",
+  "resolution": "there are 491 extracted package trees with no matching local crate archive. A future selective tool may consider only exact source/archive matches while Rust processes are stopped."
+}

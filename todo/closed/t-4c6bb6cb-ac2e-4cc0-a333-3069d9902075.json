@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-4c6bb6cb-ac2e-4cc0-a333-3069d9902075",
+  "title": "First full run over ssh, findings fixed",
+  "state": "done",
+  "category": "mac-mini",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "result": "`main` is the only branch here and on GitHub; the mini (`Mac-mini-de-Cristian.local`, 192.168.1.65) was synced to it and ran the full 27 plugins. First result 22 successful, 2 failed, 3 skipped; after the fixes 24 successful, 0 failed, 3 skipped (docker daemon down, bun and platformio not installed), 733 lines, no noise. `pear` failed on the mini only: 141 files under `/opt/homebrew/share/pear` were root-owned from earlier `sudo pear` runs; fixed on the host with `sudo chown -R cristiandeluxe:admin /opt/homebrew/share/pear`. The deeper cause was in the runner: a manual run over ssh has no terminal and skipped sudo entirely, but `sudo -n` never prompts and the mini has `NOPASSWD: ALL`; the no-terminal path now probes with `sudo -n true` and keeps the privileged steps when it succeeds (scheduled mode untouched). With the keepalive now running in non-interactive runs, stopping it printed `Terminated: 15  sleep 60` into the log; the keepalive is disowned and its stderr discarded. `brewhealth` failed: `brew missing` reported `memo: fzf`, a real missing dependency of `antoniorodr/memo`; installed `fzf`. Mini-only `brew doctor` advisories cleared: four casks had a `.metadata` directory but no version directory (`google-chrome` now 152.0.7977.83, `gcloud-cli` 583.0.0 with its dangling `latest` symlink fixed, `orbstack` 2.2.3, `responsively` 1.18.0); the `yarn` 1.22.22 formula was uninstalled because `/opt/homebrew/bin/yarn` is corepack's shim serving 4.14.1.",
+  "evidence": [
+    "`tests/runner/sudo-nopasswd.sh`; `brew missing` empty on the mini."
+  ]
+}

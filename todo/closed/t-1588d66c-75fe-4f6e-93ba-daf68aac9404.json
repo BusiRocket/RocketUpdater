@@ -1,0 +1,20 @@
+{
+  "tadu": 2,
+  "id": "t-1588d66c-75fe-4f6e-93ba-daf68aac9404",
+  "title": "`.serena/` is local language-server state,",
+  "state": "done",
+  "category": "repository",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "not project content."
+  ],
+  "closed": "2026-09-08",
+  "result": "added to `.gitignore`, so both checkouts stop reporting it as untracked. This also closes the copy in `~/p/osseus/TODO.md`.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ],
+  "files": [
+    "gitignore"
+  ]
+}

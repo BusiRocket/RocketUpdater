@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "categories": {
+    "disk-reclamation": "Disk reclamation",
+    "general": "General",
+    "host-maintenance": "Host maintenance",
+    "interface-and-run-failures": "Interface and run failures",
+    "mac-mini": "Mac mini",
+    "plugins": "Plugins",
+    "repository": "Repository",
+    "runner": "Runner",
+    "scheduling-activation": "Scheduling activation",
+    "tests": "Tests",
+    "verification": "Verification",
+    "waiting-on-the-owner-not-on-work": "Waiting on the owner, not on work"
+  }
+}

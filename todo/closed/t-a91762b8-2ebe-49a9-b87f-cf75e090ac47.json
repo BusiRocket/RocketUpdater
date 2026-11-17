@@ -1,0 +1,23 @@
+{
+  "tadu": 2,
+  "id": "t-a91762b8-2ebe-49a9-b87f-cf75e090ac47",
+  "title": "Safe reclamation on the MacBook",
+  "state": "done",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "- Note: starting OrbStack made kubelet garbage-collect 75 old `k8s_POD_*`",
+    "  sandbox containers and three anonymous volumes — kubelet's own startup GC,",
+    "  visible in `docker events` as `container destroy k8s_POD_...`, not the",
+    "  prune.",
+    "- Closes the parked decisions for the OrbStack sparse image (`~/OrbStack` is",
+    "  2.8 GiB on 2026-09-19), PlatformIO cache, Composer old phars and pnpm",
+    "  legacy stores."
+  ],
+  "closed": "2026-09-08",
+  "result": "OrbStack build cache pruned with `docker builder prune -f` (22.82 GB, the figure Docker reported as reclaimable, zero active cache; images, containers and volumes untouched, every named data volume checked present afterwards: `enlima-mariadb`, `osseus_dbdata`, `n8n_local_data`, `supabase_db_midia-local-e2e`, `ddev-global-cache`). PlatformIO cache-only prune, 426 MB (`packages` and `tools` untouched). Composer rollback phars: kept `latest.phar` and 2.9.5, removed the eight older ones (`~/.composer` 31 MB to 6.4 MB, `composer --version` still 2.10.3). `pnpm store prune` on the active v11 store: 732 packages, about 2 GB; the v10 and v3 stores stay because projects under `~/p` still pin pnpm 10.x and 9.15.x. The MacBook ended the session at 218 GiB free, later 231 GiB.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

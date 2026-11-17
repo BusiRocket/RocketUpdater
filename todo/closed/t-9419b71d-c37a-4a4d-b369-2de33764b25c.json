@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-9419b71d-c37a-4a4d-b369-2de33764b25c",
+  "title": "pip user packages audited, and they",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "stay."
+  ],
+  "closed": "2026-09-08",
+  "result": "`lxml` 6.1.1 and `pandas` 3.0.3 in `~/Library/Python/3.14/lib/python/site-packages` are live dependencies: `brain/tools/caixabank/convertCardXls.py` and `brain/tools/forense/{analyze,classify}.py` import pandas (analyze also numpy), and the docx/xlsx skill validators under `rocket-agents-library` import lxml. No old-pandas API use turned up — the `.append(` hits are reportlab story lists, not DataFrames. Never upgrade these unbounded: the consumers are financial and forensic scripts whose output nobody re-checks by hand.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

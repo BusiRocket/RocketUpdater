@@ -1,0 +1,33 @@
+{
+  "tadu": 2,
+  "id": "t-027c5434-298c-42cb-80da-95a9c41a2ba8",
+  "title": "Helm checksum verification automated, replacing",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "the by-hand procedure below.",
+    "- Lesson: the libraries were sourced in `RocketUpdater.sh`, but plugins",
+    "  execute in `scripts/run-plugin.sh`, which loads its own list. Every helper",
+    "  worked, the runner loaded none of them, and the plugin reported \"no plugins",
+    "  to verify\" and exited 0 — a pass meaning the opposite of what it said. The",
+    "  tests had hand-sourced the libraries and so could not see it.",
+    "  `tests/plugins/helm-checksum-verified.sh` now drives `scripts/run-plugin.sh`",
+    "  instead, and fails if the runner stops loading them."
+  ],
+  "closed": "2026-09-08",
+  "result": "`plugins/helm.sh` v1.1.0 verifies every installed plugin binary on each run through four libraries: `helm_plugin_release_source` names the release assets for a plugin and platform, `helm_reference_digest` fetches the published checksums, confirms the archive against them and streams the archived binary into `shasum`, `find_helm_plugin_directory` maps a declared plugin name to its installation directory (they differ — `dashboard` installs into `helm-dashboard.git`), and `classify_helm_plugin_binary` compares the two digests. Three outcomes, deliberately distinct: `verified` is a byte-identical match; `mismatch` fails the plugin and prints both digests so the finding can be reproduced by hand; `unverifiable` only warns — an unreachable or corrupt download says nothing about the installed file, and failing the run on it is how a verification step becomes noise people learn to ignore. Nothing is ever extracted to disk: the archive member is streamed into `shasum`, so an archive that fails its checksum never becomes a file, and no recursive delete is needed — which is what `tests/runner/cleanup-safety.sh` demands. The reference digest is cached per plugin and version, because the archives are 78 MiB and 71 MiB and the answer cannot change for a released version; a warm run is one local hash.",
+  "evidence": [
+    "`./scripts/test-regressions.sh` green (29 contracts); the real run reproduces the hand-verified digests exactly: `diff` → `0fff52a0...6e6a9cd`, `dashboard` → `01faebb0...d737630`. Commit d9a3494."
+  ],
+  "files": [
+    "plugins/helm.sh",
+    "lib/helm_plugin_release_source.sh",
+    "lib/helm_reference_digest.sh",
+    "lib/find_helm_plugin_directory.sh",
+    "lib/classify_helm_plugin_binary.sh",
+    "scripts/run-plugin.sh",
+    "tests/plugins/helm-checksum-*.sh"
+  ]
+}

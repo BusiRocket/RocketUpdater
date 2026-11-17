@@ -1,0 +1,24 @@
+{
+  "tadu": 2,
+  "id": "t-628431d5-dc41-4b7a-af95-8b8f045579c7",
+  "title": "`osx` failed on the volume-owner password",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "prompt for a macOS release."
+  ],
+  "closed": "2026-09-19",
+  "result": "`sudo -n /usr/sbin/softwareupdate -d -r` stops at a volume-owner password prompt when it prepares a macOS release, which no run without a terminal can answer: `Failed to authenticate` after macOS 26.7 had downloaded on the MacBook (macOS 27 next in the list), and `com.apple.LocalAuthentication ... Password rejected (3)` while preparing macOS 26.7 itself on the Mac mini (Spanish locale, NOPASSWD sudo). The first fix assumed only major upgrades were affected; the mini run disproved it. The sudoers rule allows only that exact argv, so the download cannot be narrowed without a privileged change. Plugin v2.1.0 detects a listed `macOS` release together with either wording, reports the release as a manual install from System Settings (noting that updates listed after it may not have downloaded) and succeeds. Other download failures still fail. Safari 27 is not mistaken for a macOS release, and the real label carries a non-breaking space (U+00A0) after `macOS`, which the first regex missed on the validation run; the test pins the byte-exact listing and both failure wordings. Assumption recorded: unattended preparation of a macOS release is never achievable without a terminal, so reporting it instead of failing changes nothing a user would miss.",
+  "evidence": [
+    "`tests/plugins/osx-os-update-auth.sh` (RED before, GREEN after), `tests/runner/sudo-mode.sh` still pins the single sudo argv; suite and shellcheck green; MacBook run 3 `run_end status=success total=27 successful=25 failed=0 skipped=2` (242s)."
+  ],
+  "files": [
+    "lib/list_macos_os_updates.sh",
+    "plugins/osx.sh",
+    "tests/plugins/osx.sh",
+    "scripts/run-plugin.sh",
+    "CHANGELOG.md"
+  ]
+}

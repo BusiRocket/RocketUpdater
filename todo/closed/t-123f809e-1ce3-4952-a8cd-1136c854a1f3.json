@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-123f809e-1ce3-4952-a8cd-1136c854a1f3",
+  "title": "`brew doctor` advisories resolved",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-07",
+  "result": "`goplaces` 0.4.3 formula keg was dead weight (the binary belongs to the 0.4.9 cask), uninstalled; Homebrew autoremoved an orphaned `unbound` 1.26.0 in the same command (`brew install unbound` restores it). `terraform` 1.5.7 was an orphaned keg of a formula Homebrew removed (BUSL); no `.tf` file under `~/p` and no state file, so it was replaced with `hashicorp/tap/terraform` 1.16.1. `pillow` and `pydantic` are left unlinked deliberately: dependency kegs of `img2pdf` and `ocrmypdf`, which run from their own virtualenvs; `brew link --dry-run` shows linking would write PIL and pydantic into the global `/opt/homebrew/lib/python3.13/site-packages`. Re-check only if a dependent breaks.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

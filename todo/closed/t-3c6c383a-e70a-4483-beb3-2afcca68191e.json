@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-3c6c383a-e70a-4483-beb3-2afcca68191e",
+  "title": "Parallels VM copied to the mini",
+  "state": "done",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "result": "taken with the VM suspended and nothing but the Parallels service running: `parallels-windows-11-pvm.tar`, 60,705,433,600 bytes, sha256 `b191286692...4d672c7`, 30 entries including the 53 GiB `.hds`, the `.mem` suspended state and `config.pvs`. The local VM was not touched — still `suspended`, still 57 GiB. Restoring is `tar -C ~/Parallels -xf` followed by `prlctl register`.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

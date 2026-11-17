@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-6854f309-adcf-4fb9-8c99-888a9cdcddee",
+  "title": "`tests/runner/plugin-timeout.sh` failed for",
+  "state": "done",
+  "category": "tests",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "machine load rather than for its contract."
+  ],
+  "closed": "2026-09-08",
+  "result": "it waited five seconds for the fixture plugin to start, and preflight now takes a two-sample `top` before any plugin runs. The waits are 60s, which also covers the runner's own `--kill-after=30s`.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

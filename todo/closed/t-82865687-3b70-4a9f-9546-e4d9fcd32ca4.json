@@ -1,0 +1,20 @@
+{
+  "tadu": 2,
+  "id": "t-82865687-3b70-4a9f-9546-e4d9fcd32ca4",
+  "title": "`plugins/bun.sh` fails whenever the run's cwd",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "has no `package.json`."
+  ],
+  "closed": "2026-09-12",
+  "result": "`bun pm cache` exits 1 with `error: No package.json was found for directory ...` (full run 2026-09-12, the only failed plugin of 27). The plugin now falls back to `${BUN_INSTALL:-$HOME/.bun}/install/cache` with a warning.",
+  "evidence": [
+    "commit 20a464f; verified from `$HOME` on the mini, where the scheduled run had failed."
+  ],
+  "files": [
+    "plugins/bun.sh"
+  ]
+}

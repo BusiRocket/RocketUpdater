@@ -1,0 +1,11 @@
+{
+  "tadu": 2,
+  "id": "t-6e8ef188-7a2f-49db-a5a5-7b58f500800a",
+  "title": "Parallels Windows 11 VM stays",
+  "state": "cancelled",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "resolution": "it is the owner's only Windows. Compaction is not worth running — `prl_disk_tool compact --info` reports 54,623 allocated blocks against 54,610 used at 1 MiB per block, about 13 MiB to recover. The 256 GiB virtual disk holds ~53 GiB of real Windows. The only meaningful saving is the 3.2 GiB `.mem` suspended state, which stays an owner decision in `TODO.md`."
+}

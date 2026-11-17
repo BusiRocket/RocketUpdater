@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-48051fe1-821b-4450-9091-ae0679d5745e",
+  "title": "The saturation gate never fired on either",
+  "state": "done",
+  "category": "runner",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "machine."
+  ],
+  "closed": "2026-09-08",
+  "result": "`sysctl` prints the load in the user's locale — \"19,70\", not \"19.70\" — and `awk -v` only treats a value as numeric when it looks numeric, so the comparison was done on strings: `\"19,70\" > \"8\"` is false because `\"1\" < \"8\"`. The mini, at load 136 on 8 CPUs with 0.0% idle, was reported healthy. Fixed by normalising the separator and forcing numeric context.",
+  "evidence": [
+    "`tests/runner/preflight-load-gate.sh` pins the discriminating case; the mini now reports `load=136.31 cpus=8 cpu_idle=0.0` and degrades."
+  ]
+}

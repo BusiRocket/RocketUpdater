@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-d75b337f-ac16-41d3-abc0-130d39580939",
+  "title": "`plugins/uvtools.sh` feeds its tool list on",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "fd 3."
+  ],
+  "closed": "2026-09-07",
+  "result": "a future `uv` that reads stdin cannot silently reduce the run to one tool.",
+  "evidence": [
+    "`tests/plugins/uvtools.sh`, which fails against the old form."
+  ]
+}

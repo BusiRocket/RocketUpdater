@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-f1384be4-c58c-4b33-872f-179506d7bbf1",
+  "title": "Steam — 66 GiB under `steamapps/common` on 2026-09-19, six titles,",
+  "state": "pending",
+  "category": "waiting-on-the-owner-not-on-work",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "re-downloadable, so a UI uninstall of whichever titles the owner picks rather",
+    "than an archive. The two Witcher installs alone are 32.6 GiB. Preserve",
+    "Steam.AppBundle, account state, and the remaining library."
+  ]
+}

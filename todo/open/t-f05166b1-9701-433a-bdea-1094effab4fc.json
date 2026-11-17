@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-f05166b1-9701-433a-bdea-1094effab4fc",
+  "title": "The Parallels `.mem` suspended state — 3.2 GiB, released by resuming the",
+  "state": "pending",
+  "category": "waiting-on-the-owner-not-on-work",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "VM and shutting Windows down properly. It discards the session saved on",
+    "21 June, which is why it is the owner's call and not a maintenance step. The",
+    "VM is still `suspended` on 2026-09-19; a full copy sits on the mini."
+  ]
+}

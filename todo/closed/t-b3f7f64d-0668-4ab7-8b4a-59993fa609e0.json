@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-b3f7f64d-0668-4ab7-8b4a-59993fa609e0",
+  "title": "Task 3.5 supervised canary closed; the full",
+  "state": "done",
+  "category": "runner",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "updater path under launchd is proven."
+  ],
+  "closed": "2026-09-08",
+  "result": "run `20260908T004750Z.95225` reported `preflight ready`, exactly one `plugin_end` for each of the 27 plugins, zero error events, and `run_end status=success total=27 successful=25 failed=0 skipped=2` after 2054 seconds. Logs stayed 0600 in a 0700 directory, stderr held only gcloud's progress text, and no child survived the run. The first canary had deferred everything because the 1-minute load was above the CPU count while Backblaze was uploading; the gate now confirms load with measured CPU idle (`preflight ... cpu_idle=`), and this run — load 15-22 on 16 CPUs with 58-75% idle — came back `ready` and did the real work. Slowest steps under launchd: homebrew 315s, brewhealth 488s, mole 123s, osx 43s.",
+  "evidence": [
+    "`tests/runner/preflight-load-gate.sh` pins both sides, an I/O-bound machine (75% idle, not degraded) and a saturated one (0% idle, degraded, status 20)."
+  ]
+}

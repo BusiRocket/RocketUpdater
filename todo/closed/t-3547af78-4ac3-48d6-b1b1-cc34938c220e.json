@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-3547af78-4ac3-48d6-b1b1-cc34938c220e",
+  "title": "PEAR probes the grant once",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-07",
+  "result": "`sudo -n true` once and one reported reason, instead of one `sudo: a password is required` per package; an expiry mid-loop also disables root for the remaining packages.",
+  "evidence": [
+    "`tests/plugins/pear-sudo-probe.sh`."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-f5c79984-b7af-4fb4-b3d1-d337f4feda61",
+  "title": "End-of-session full manual run",
+  "state": "done",
+  "category": "verification",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "result": "27 plugins, 25 successful, 0 failed, 2 skipped, exit 0, 602 lines of log, none of the noise the session started with (`No such file or directory`, `Stale NFS`, `a password is required`, `Terminated: 15`, tap-trust deprecation, `No available formula with the name \"warning: ...\"`). Preflight recorded `load=263.59 cpus=16 cpu_idle=0.0` — genuine saturation, correctly identified by the measured-idle gate, reported as degraded while manual mode still ran the work. PEAR printed `its install directory is writable by this user; upgrading without root`.",
+  "evidence": [
+    "suite and shellcheck green on both machines at `0f97f1b`."
+  ]
+}

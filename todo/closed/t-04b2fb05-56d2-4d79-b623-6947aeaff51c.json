@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-04b2fb05-56d2-4d79-b623-6947aeaff51c",
+  "title": "Yarn Berry metadata, Deno and Bun",
+  "state": "cancelled",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "caches left alone."
+  ],
+  "closed": "2026-09-08",
+  "resolution": "the 1.1 GB Yarn metadata is the offline resolution index, and losing it is a real capability loss rather than a cache eviction. The Deno (138 MB) and Bun (172 MB) caches are not worth the review."
+}

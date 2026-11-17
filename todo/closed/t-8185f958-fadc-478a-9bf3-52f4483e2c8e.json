@@ -1,0 +1,11 @@
+{
+  "tadu": 2,
+  "id": "t-8185f958-fadc-478a-9bf3-52f4483e2c8e",
+  "title": "Atrium index deletion",
+  "state": "cancelled",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "resolution": "Atrium stays untouched by the owner's decision, index growth included."
+}

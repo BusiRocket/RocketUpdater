@@ -1,0 +1,31 @@
+{
+  "tadu": 2,
+  "id": "t-ef10ec17-3e3c-4284-9597-967044c52a5d",
+  "title": "OpenClaw gateway decommission verified",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "gone.",
+    "- Original finding: a launchd job repeatedly executed Node against absent",
+    "  `/opt/homebrew/lib/node_modules/openclaw/dist/index.js`, producing",
+    "  `MODULE_NOT_FOUND`: `spawn scheduled`, 128,122 runs, last exit 1, and a",
+    "  3,328,859,672-byte error log growing 3,068 bytes per four seconds. Do not",
+    "  create a RocketUpdater OpenClaw plugin or newsyslog rule. If any part of",
+    "  the live job or log reappears, use the idempotent supervised sequence:",
+    "  `launchctl bootout gui/$(id -u)/ai.openclaw.gateway`, move the active",
+    "  plist to `~/Library/LaunchAgents/disabled/` (refuse if a retained copy",
+    "  already exists), `plutil -lint` it, gzip the error log with a sha256",
+    "  comparison of the decompressed stream before removing the original, then",
+    "  after 5 seconds prove no service, no `pgrep -f '.../openclaw/dist/index.js",
+    "  gateway'` and no error log. Log removal is reversible with `gzip -cd`; the",
+    "  plist move with `mv` back, but do not bootstrap it unless the owner",
+    "  recommissions OpenClaw and the declared entrypoint exists."
+  ],
+  "closed": "2026-09-08",
+  "result": "no `~/Library/LaunchAgents/ai.openclaw.gateway.plist`, `launchctl print gui/501/ai.openclaw.gateway` reports the service is not in the domain, no gateway process is running and no `~/Library/Logs/openclaw*` remains. Only the retained plist under `LaunchAgents/disabled/` is left, as intended (SHA-256 `3c50e470ae6e9a2e8e8a6c0e98644f5b3a6afa9b164a0537448d2cf2190d2501`).",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

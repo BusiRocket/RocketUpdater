@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-b42eb748-99dc-4f4f-b217-b9973c436890",
+  "title": "`report_docker` no longer waits about 86",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "seconds on a dead daemon."
+  ],
+  "closed": "2026-09-08",
+  "result": "the `docker info` gate is bounded with the coreutils timeout preflight already requires (10s, `--kill-after=5s`).",
+  "evidence": [
+    "`tests/plugins/docker.sh`, whose hung-daemon case takes 10s with the bound and 121s without it."
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-66f71a09-2d52-49eb-88b4-447b864ae12c",
+  "title": "Stop `plugins/homebrew.sh` retrying `brew",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "upgrade --greedy` three times against the deterministic `gcloud-cli` failure."
+  ],
+  "closed": "2026-09-01",
+  "result": "plugin v2.0.0 dropped the blanket `--greedy` retry loop; each outdated formula and cask is upgraded once with no retry (only `brew update` keeps its three attempts), and greedy behavior is limited to `HOMEBREW_UPGRADE_GREEDY_CASKS=\"codexbar goplaces\"`.",
+  "evidence": [
+    "`tests/plugins/homebrew.sh` proves a failed cask is attempted once, the remaining casks still run, and the plugin returns 1."
+  ]
+}

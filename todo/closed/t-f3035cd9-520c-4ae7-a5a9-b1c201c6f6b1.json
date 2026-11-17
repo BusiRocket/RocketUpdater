@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-f3035cd9-520c-4ae7-a5a9-b1c201c6f6b1",
+  "title": "Mole-style compact output",
+  "state": "done",
+  "category": "interface-and-run-failures",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "for manual runs; homebrew, yarn, mole and msupdate failures from the",
+    "2026-10-11 run."
+  ],
+  "closed": "2026-10-11",
+  "result": "manual terminal runs show a preflight line, a spinner per plugin and one status block per plugin, with the full output in `~/Library/Logs/RocketUpdater/run-<RUN_ID>.log`; `--verbose` keeps the streamed output. Kept in bash rather than Node: the run itself upgrades the node formula, and launchd runs need no extra runtime. Homebrew's pillow/pydantic failure was pip-installed pillow 12.2.0 and typing_extensions in Homebrew's Python site-packages; the pip copies were removed and both kegs linked. Disabled casks are reported, unlinked kegs named, yarn's empty version fails with yarn's reason, mole's version parses, msupdate's XPC failure is a skip.",
+  "evidence": [
+    "`tests/runner/compact-ui.sh`, `tests/plugins/yarn-version.sh`, `tests/plugins/homebrew.sh`, `tests/plugins/mole.sh`; full suite and shellcheck green; real compact run 25 ok, 0 failed, 2 skipped in 5m46s."
+  ]
+}

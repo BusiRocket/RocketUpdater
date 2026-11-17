@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-76b8b997-fc30-4474-8c54-68ba517ed958",
+  "title": "Claude and Claude-favish application bundles — 14 GiB and 12 GiB under",
+  "state": "pending",
+  "category": "waiting-on-the-owner-not-on-work",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "`~/Library/Application Support` on 2026-09-19. Decision: confirm both",
+    "applications and local agents are stopped and accept the reprovisioning cost",
+    "before removing any bundle."
+  ]
+}

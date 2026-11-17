@@ -1,0 +1,11 @@
+{
+  "tadu": 2,
+  "id": "t-ec0b6656-ff74-462c-acc5-6b0b69f8ace0",
+  "title": "U+FE0F hygiene — do not strip it",
+  "state": "cancelled",
+  "category": "repository",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "resolution": "the selector survives in exactly one file, `lib/print_message.sh`, on three characters: `ℹ️` (U+2139), `⏭️` (U+23ED) and `⚠️` (U+26A0). Those three have a text presentation by default, so removing VS16 turns the run's prefixes into monochrome glyphs — it degrades the output rather than cleaning it. If a variation-selector CI scan is ever added, allowlist these three; that is the correct fix here."
+}

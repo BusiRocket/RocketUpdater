@@ -1,0 +1,24 @@
+{
+  "tadu": 2,
+  "id": "t-afc2f644-cd66-4bcd-8b5f-1c7685b3c0bc",
+  "title": "Node formula upgrade tripped the global npm",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "integrity guard."
+  ],
+  "closed": "2026-09-19",
+  "result": "the full run of 2026-09-19 upgraded node 26.8.2 to 26.9.0 and the guard reported `integrity_violation package=npm kind=changed`, failing homebrew on both machines. The formula ships npm itself (`brew ls --verbose node` lists `libexec/lib/node_modules/npm/package.json`), so the rewrite is the upgrade working as designed. The plugin now reads the packages the formula owns and excludes them from both snapshots before the comparison; a foreign package changed by the same upgrade is still reported.",
+  "evidence": [
+    "`tests/plugins/homebrew-node-bundled-npm.sh` (RED against the old plugin, GREEN after; drives `scripts/run-plugin.sh` so the library wiring is covered); `./scripts/test-regressions.sh` all passed; `./scripts/lint.sh` 92 scripts clean."
+  ],
+  "files": [
+    "lib/list_formula_npm_packages.sh",
+    "lib/exclude_npm_snapshot_packages.sh",
+    "plugins/homebrew.sh",
+    "scripts/run-plugin.sh",
+    "CHANGELOG.md"
+  ]
+}

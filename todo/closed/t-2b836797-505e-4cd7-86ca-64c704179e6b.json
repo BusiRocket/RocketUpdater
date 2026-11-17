@@ -1,0 +1,21 @@
+{
+  "tadu": 2,
+  "id": "t-2b836797-505e-4cd7-86ca-64c704179e6b",
+  "title": "Heavy items archived to the Mac mini",
+  "state": "done",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "instead of deleted.",
+    "- Closes the parked decisions for the iOS device backup, Cursor",
+    "  `state.vscdb.backup`, server pre-cutover snapshots, Android `midia-test`",
+    "  AVD, OpenAI Whisper checkpoints and the Claude-favish plugin rollback",
+    "  snapshots: each is now a restore from the mini, not a deletion."
+  ],
+  "closed": "2026-09-08",
+  "result": "the owner's decision — with no Time Machine destination on the MacBook and terabytes free on the mini, the heavy items moved to `/Volumes/Datos18TB/Archivo/macbook-2026-09-08`. Each item was streamed as a tar over ssh, with the sha256 of the same byte stream computed on both ends and the archive listed on the mini before anything local was removed. Hashes and a restore table are in `LEEME.md` beside the archives. 62 GiB now sit on the mini; the MacBook went from 153 GiB free to 206 GiB. Archived: `~/Backups/nova-account-closures-2026-08` (6.81 GB) and `~/Backups/webcafeina-orphan-docroots-2026-08-24` (4.42 GB), the sole copies of closed hosting accounts; the local iOS backup of 2026-07-04 (9.46 GB); `~/.cache/whisper` (6.72 GB); the `midia-test` AVD (3.43 GB); Cursor's `state.vscdb.backup` of 15 May (6.43 GB); the July plugin rollback (440 MB); `~/.ollama/models` (28.78 GB) whole.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

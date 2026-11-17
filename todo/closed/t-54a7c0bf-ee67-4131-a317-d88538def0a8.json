@@ -1,0 +1,21 @@
+{
+  "tadu": 2,
+  "id": "t-54a7c0bf-ee67-4131-a317-d88538def0a8",
+  "title": "Shadow zsh formulae removed (about",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "5 MiB; the point was the shadowing, not the space).",
+    "- Note for future shell checks: `.zshrc` takes an early agent path when",
+    "  `CLAUDECODE`, `CODEX_AGENT` and similar are set, so a shell started from an",
+    "  agent session loads none of this. Verify with those variables unset, under",
+    "  a pty, or the result is a false negative."
+  ],
+  "closed": "2026-09-08",
+  "result": "`.zshrc` sets `ZSH_THEME=\"powerlevel10k/powerlevel10k\"` and lists `zsh-syntax-highlighting` and `zsh-autosuggestions` in `plugins=(...)`, all resolved from `~/.oh-my-zsh/custom`; nothing sourced `/opt/homebrew/share/zsh-*` and no formula depended on the three. After `brew uninstall --formula powerlevel10k zsh-autosuggestions zsh-syntax-highlighting` a real interactive shell still reports `theme=powerlevel10k/powerlevel10k`, both plugins loaded and the `p10k` function present.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

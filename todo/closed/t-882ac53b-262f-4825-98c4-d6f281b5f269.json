@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-882ac53b-262f-4825-98c4-d6f281b5f269",
+  "title": "Homebrew findings from the run of 2026-09-07",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-07",
+  "result": "`brew outdated` was captured with `2>&1`, so deprecation and tap warnings entered the outdated list and were passed to `brew upgrade`; stderr is now kept apart and the names filtered. Homebrew upgraded exactly one formula and one cask per run and reported success for the rest, because `brew upgrade` reads stdin and the loop fed the outdated list on stdin; the list now arrives on fd 3 — this is why 32 formulae stayed outdated across runs that all reported success. `HOMEBREW_NO_REQUIRE_TAP_TRUST` dropped: the 20 installed third-party taps are trusted explicitly in `~/.homebrew/trust.json` via `brew trust --tap` (3 were missing: ddev/ddev, gbevin/tools, stripe/stripe-cli).",
+  "evidence": [
+    "`tests/plugins/homebrew-warning-noise.sh`, `tests/plugins/homebrew-stdin-drain.sh` (fails against the old form)."
+  ]
+}

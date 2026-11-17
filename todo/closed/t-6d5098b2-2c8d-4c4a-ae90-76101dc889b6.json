@@ -1,0 +1,20 @@
+{
+  "tadu": 2,
+  "id": "t-6d5098b2-2c8d-4c4a-ae90-76101dc889b6",
+  "title": "Privileged files installed and",
+  "state": "done",
+  "category": "scheduling-activation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "the LaunchAgent enabled."
+  ],
+  "closed": "2026-09-01",
+  "result": "`/etc/sudoers.d/rocketupdater` installed as `root:wheel 0440` through the macOS authorization dialog, so no credential passed through a shell or a transcript; `visudo -c` validates the whole config. The boundary is proven by execution, not by `sudo -l` (macOS ships `%admin ALL=(ALL) ALL`, so `sudo -l` reports every command as permitted): `sudo -n /usr/sbin/softwareupdate -d -r` exits 0 with no prompt, while `sudo -n /usr/bin/true` and `sudo -n /usr/sbin/softwareupdate --version` both exit 1 with \"a password is required\". `/etc/newsyslog.d/rocketupdater.conf` installed as `root:wheel 0644` in the same authorization, fields verified tab-separated with `cat -et`. The LaunchAgent was installed gated in preflight-only mode, then reloaded in full scheduled mode: the Task 3.4 gate passed with exit 0, the run's only events run_start, preflight ready, run_end success; logs 0600; directory 0700; empty stderr; no ANSI escape; no surviving child.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ],
+  "files": [
+    "launchd/"
+  ]
+}

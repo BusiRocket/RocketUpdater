@@ -1,0 +1,14 @@
+{
+  "tadu": 2,
+  "id": "t-d9142790-d281-4e69-bee5-f65e145568d9",
+  "title": "Helm plugin directory cleaned",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "result": "`~/Library/helm/plugins` held eight dangling symlinks from April — six `skaffold-render*` and two `tmp.*` pointing into `/var/folders/.../T/` paths macOS has long since cleared. Only the links were removed.",
+  "evidence": [
+    "`helm plugin list` still reports both real plugins."
+  ]
+}

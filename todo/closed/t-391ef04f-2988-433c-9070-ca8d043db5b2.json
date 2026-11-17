@@ -1,0 +1,17 @@
+{
+  "tadu": 2,
+  "id": "t-391ef04f-2988-433c-9070-ca8d043db5b2",
+  "title": "Docker/OrbStack report `du` stderr no longer",
+  "state": "done",
+  "category": "plugins",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "floods the run."
+  ],
+  "closed": "2026-09-07",
+  "result": "vanished paths (live container overlays) are counted and reported as one line saying the size is a lower bound.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

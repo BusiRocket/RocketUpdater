@@ -1,0 +1,20 @@
+{
+  "tadu": 2,
+  "id": "t-2b5d9763-bc77-4c06-9aad-3e9803196b7b",
+  "title": "Ollama removed entirely",
+  "state": "done",
+  "category": "disk-reclamation",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "- Amendment 2026-09-19: Ollama is back in use. `ollama list` shows",
+    "  `qwen3.6:35b` (22 GB) and `qwen3.6:35b-mlx` (23 GB) pulled two days earlier",
+    "  and `~/.ollama/models` is 43 GB again. Tracked as an open owner decision in",
+    "  `TODO.md`."
+  ],
+  "closed": "2026-09-08",
+  "result": "the owner used none of it at the time. `qwen3.5:35b-mlx` (21 GB), `qwen3.5-opencode` (6.6 GB, a local derivative in no registry — the mini archive is its only other copy) and `nomic-embed-text` (274 MB) went, and `brew services stop ollama` ended the idle daemon. `~/.ollama` was 40 KB. `~/.config/opencode/opencode.json` still named `ollama/qwen3.5-opencode:latest` as `model` and `small_model`, leaving opencode's default provider dangling.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

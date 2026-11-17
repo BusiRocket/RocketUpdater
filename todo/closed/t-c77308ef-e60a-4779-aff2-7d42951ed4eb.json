@@ -1,0 +1,23 @@
+{
+  "tadu": 2,
+  "id": "t-c77308ef-e60a-4779-aff2-7d42951ed4eb",
+  "title": "Helm plugins updated on the owner's",
+  "state": "done",
+  "category": "host-maintenance",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "notes": [
+    "approval — `diff` 3.14.1 to 3.15.12 and `dashboard` 2.0.3 to 2.1.3 — with the",
+    "verification their own installers skip done by hand.",
+    "- Finding that made this a decision: `helm-diff`'s `install-binary.sh` does",
+    "  not verify anything — its `installFile` comment says \"verifies the SHA256",
+    "  for the file\" and the function only untars and copies, a leftover comment",
+    "  from the template it was copied from. `helm plugin update diff` therefore",
+    "  installs an unverified download. Now automated by the entry above."
+  ],
+  "closed": "2026-09-08",
+  "result": "both plugin directories were copied to the session scratchpad first (rollback is a `cp -R` away). The upstream release tarball was downloaded separately and checked against the checksum file the project publishes: `helm-diff-macos-arm64.tgz` → `cb9e5b6c...632b580`, `helm-dashboard_2.1.3_Darwin_arm64.tar.gz` → `0d6cb213...dedff85`, both matched. The verified tarball was extracted and its binary hashed, the plugin updated through helm, then the installed binary hashed and compared: `diff` → `0fff52a0...6e6a9cd`, `helm-dashboard` → `01faebb0...d737630`, both identical to the verified reference. `helm diff version` answers 3.15.12, `helm dashboard --version` answers 2.1.3, helm v4.2.4 still lists both plugins.",
+  "evidence": [
+    "legacy item migrated to format 2 without a recorded evidence"
+  ]
+}

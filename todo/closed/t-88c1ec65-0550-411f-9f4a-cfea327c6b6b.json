@@ -1,0 +1,11 @@
+{
+  "tadu": 2,
+  "id": "t-88c1ec65-0550-411f-9f4a-cfea327c6b6b",
+  "title": "Unbrewed dylibs in `/usr/local/lib` stay",
+  "state": "cancelled",
+  "category": "mac-mini",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "closed": "2026-09-08",
+  "resolution": "`pkgutil` names the owners — `libEioPal`, `libTCMsgSrv2` and `libTCMsgSvr2` belong to `com.tcelectronic.pkg.TCAudioInterfaceSoftware` (the audio interface driver), `libcpsrt` to `com.wibu.cmdriver` (CodeMeter licensing), and `libext2fs` to an ext2/3/4 filesystem installer. Homebrew only warns because it did not put them there; deleting them breaks audio hardware and licence dongles."
+}
