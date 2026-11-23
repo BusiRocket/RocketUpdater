@@ -3,7 +3,8 @@
 # An installed binary that is not the release it claims to be is the only thing
 # this verification exists to catch, so it has to fail the plugin rather than
 # warn. It also has to say both hashes: a mismatch nobody can reproduce by hand
-# is a report nobody will act on.
+# is a report nobody will act on. Updates run unattended, so the mismatching
+# binary also goes to the Trash before anyone can run it.
 
 set -u
 
@@ -52,12 +53,21 @@ case "\$1 \$2" in
 esac
 exit 0
 EOF
+cat >"$FIXTURE_DIR/bin/fake-trash" <<EOF
+#!/bin/bash
+for path in "\$@"; do
+    printf '%s\n' "\$path" >>"$STATE_DIR/trashed.log"
+    /bin/mv -- "\$path" "$STATE_DIR/trashed-binary"
+done
+EOF
 chmod +x "$FIXTURE_DIR/bin/"*
+INSTALLED_DIGEST=$(shasum -a 256 "$PLUGINS_ROOT/helm-diff/bin/diff" | awk '{ print $1 }')
 
 set +e
 PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" \
     ROCKETUPDATER_HELM_RELEASE_BASE_URL="file://$FIXTURE_DIR/release" \
     ROCKETUPDATER_HELM_CACHE_DIR="$CACHE_DIR" \
+    ROCKETUPDATER_TRASH_COMMAND="$FIXTURE_DIR/bin/fake-trash" \
     /bin/bash -c '
     set -u
     source "'"$ROOT_DIR"'/lib/print_message.sh"
@@ -73,6 +83,7 @@ PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" \
     source "'"$ROOT_DIR"'/lib/helm_reference_digest.sh"
     source "'"$ROOT_DIR"'/lib/find_helm_plugin_directory.sh"
     source "'"$ROOT_DIR"'/lib/classify_helm_plugin_binary.sh"
+    source "'"$ROOT_DIR"'/lib/quarantine_helm_plugin_binary.sh"
     source "'"$ROOT_DIR"'/plugins/helm.sh"
     update_helm
 ' </dev/null >"$STATE_DIR/output" 2>&1
@@ -85,7 +96,6 @@ if [ "$PLUGIN_STATUS" -eq 0 ]; then
     exit 1
 fi
 
-INSTALLED_DIGEST=$(shasum -a 256 "$PLUGINS_ROOT/helm-diff/bin/diff" | awk '{ print $1 }')
 REFERENCE_DIGEST=$(shasum -a 256 "$FIXTURE_DIR/stage/$ARCHIVE_MEMBER" | awk '{ print $1 }')
 for expected_digest in "$INSTALLED_DIGEST" "$REFERENCE_DIGEST"; do
     if ! grep -qF "$expected_digest" "$STATE_DIR/output"; then
@@ -98,6 +108,13 @@ done
 if grep -q 'matches the published release' "$STATE_DIR/output"; then
     cat "$STATE_DIR/output"
     echo "RED helm checksum mismatch: a mismatching binary was also reported as verified"
+    exit 1
+fi
+
+if [ -e "$PLUGINS_ROOT/helm-diff/bin/diff" ] ||
+    [ "$(cat "$STATE_DIR/trashed.log" 2>/dev/null)" != "$PLUGINS_ROOT/helm-diff/bin/diff" ]; then
+    cat "$STATE_DIR/output"
+    echo "RED helm checksum mismatch: the mismatching binary stayed runnable instead of going to the Trash"
     exit 1
 fi
 

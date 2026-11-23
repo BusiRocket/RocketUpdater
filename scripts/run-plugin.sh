@@ -75,6 +75,8 @@ source "$ROOT_DIR/lib/helm_reference_digest.sh" || exit 78
 source "$ROOT_DIR/lib/find_helm_plugin_directory.sh" || exit 78
 # shellcheck source=../lib/classify_helm_plugin_binary.sh
 source "$ROOT_DIR/lib/classify_helm_plugin_binary.sh" || exit 78
+# shellcheck source=../lib/quarantine_helm_plugin_binary.sh
+source "$ROOT_DIR/lib/quarantine_helm_plugin_binary.sh" || exit 78
 # shellcheck source=/dev/null
 source "$PLUGIN_FILE" || exit $?
 

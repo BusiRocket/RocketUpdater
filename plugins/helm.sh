@@ -12,7 +12,8 @@ PLUGIN_SCHEDULE_ACTION=run
 # helm-diff's install-binary.sh claims to verify a SHA256 it never checks. The
 # check proves that what is installed is byte-identical to the release the
 # project published and signed off with a checksums file, so a tampered or
-# broken download is reported as a failure right after it lands.
+# broken download is reported as a failure right after it lands, and its
+# binary is moved to the Trash before anyone can run it.
 update_helm() {
     local plugins_root
     local cache_dir
@@ -91,6 +92,16 @@ update_helm() {
         mismatch)
             echo_error "Helm plugin $plugin: $detail"
             mismatch_found=true
+            # Updates run unattended, so a binary that is not the published
+            # release must not stay runnable until someone reads the log.
+            local quarantined
+            if quarantined=$(quarantine_helm_plugin_binary "$plugin" \
+                "$(printf '%s\n' "$inventory" | awk -v name="$plugin" 'NR > 1 && $1 == name { print $2 }')" \
+                "$plugins_root"); then
+                echo_warning "Helm plugin $plugin: moved $quarantined to the Trash; reinstall the plugin after checking it"
+            else
+                echo_error "Helm plugin $plugin: the mismatching binary could not be moved to the Trash"
+            fi
             ;;
         *) echo_warning "Helm plugin $plugin could not be verified: $detail" ;;
         esac

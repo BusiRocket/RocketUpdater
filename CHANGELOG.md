@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Helm: a plugin binary that does not match its published release is moved to the Trash right after the update, so it cannot run before someone reviews it.
 - Microsoft AutoUpdate 2.0.0 installs pending updates (`msupdate --install`,
   never `--terminate`) and sets MAU to download on its own.
 - Helm 2.0.0 runs `helm plugin update` for each plugin before the checksum

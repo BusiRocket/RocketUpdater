@@ -32,7 +32,8 @@ fi
 if rg -n --glob '*.sh' \
     'deno clean|/usr/bin/trash|-exec trash|clear-cache|bun pm cache rm|go clean|gem cleanup|brew autoremove *($|2>|;|&&|[|])|hf cache (rm|prune)' \
     "$ROOT_DIR" -g '!tests/**' -g '!plugins/deno.sh' -g '!plugins/yarnmetadata.sh' \
-    -g '!plugins/dartanalysis.sh' -g '!plugins/pear.sh' | grep -q .; then
+    -g '!plugins/dartanalysis.sh' -g '!plugins/pear.sh' \
+    -g '!lib/quarantine_helm_plugin_binary.sh' | grep -q .; then
     echo "RED cleanup safety: a cleanup command appeared outside the plugin that owns it"
     exit 1
 fi
