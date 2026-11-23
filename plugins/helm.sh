@@ -1,19 +1,18 @@
 #!/bin/bash
 
-PLUGIN_NAME="Helm Plugin Inventory"
-PLUGIN_VERSION="1.1.0"
+PLUGIN_NAME="Helm Plugins"
+PLUGIN_VERSION="2.0.0"
 DISABLE=false
 PLUGIN_PRIORITY=50
 PLUGIN_TIMEOUT_SECONDS=900
 PLUGIN_SCHEDULE_ACTION=run
 
-# Helm plugin updates stay manual because an update hook executes a script the
-# plugin ships, which is a decision about trusting a download rather than a
-# maintenance step. What this plugin does instead is the check those installers
-# skip — helm-diff's install-binary.sh has a comment claiming it verifies a
-# SHA256 and a function that does not — by proving that what is installed today
-# is byte-identical to the release the project published and signed off with a
-# checksums file.
+# Helm plugins are updated in place (owner's decision, 2026-11-23) and then
+# checked, because an update hook runs a script the plugin ships and
+# helm-diff's install-binary.sh claims to verify a SHA256 it never checks. The
+# check proves that what is installed is byte-identical to the release the
+# project published and signed off with a checksums file, so a tampered or
+# broken download is reported as a failure right after it lands.
 update_helm() {
     local plugins_root
     local cache_dir
@@ -45,10 +44,30 @@ update_helm() {
         return 0
     fi
 
+    local plugin_name
+    while IFS= read -r plugin_name <&3; do
+        [ -n "$plugin_name" ] || continue
+        echo_info "Helm: Updating plugin $plugin_name..."
+        if helm plugin update "$plugin_name" </dev/null 2>&1; then
+            echo_change "helm plugin $plugin_name"
+        else
+            echo_warning "Helm plugin $plugin_name could not be updated"
+            plugin_status=1
+        fi
+    done 3< <(printf '%s\n' "$inventory" | awk 'NR > 1 && NF >= 2 { print $1 }')
+
+    # The versions changed, so the checks below read a fresh inventory.
+    if ! inventory=$(helm plugin list 2>&1); then
+        echo_error "Helm plugin inventory failed after the update"
+        printf '%s\n' "$inventory"
+        return 1
+    fi
+    printf '%s\n' "$inventory"
+
     plugins_root=${HELM_PLUGINS:-$(helm env HELM_PLUGINS 2>/dev/null | tr -d '"')}
     if [ -z "$plugins_root" ] || [ ! -d "$plugins_root" ]; then
         echo_warning "Helm plugin directory could not be located; checksums not verified"
-        return 0
+        return "$plugin_status"
     fi
 
     cache_dir=${ROCKETUPDATER_HELM_CACHE_DIR:-$HOME/Library/Caches/RocketUpdater/helm-references}
@@ -62,7 +81,7 @@ update_helm() {
 
     if [ -z "$verdicts" ]; then
         echo_warning "Helm reported no plugins to verify"
-        return 0
+        return "$plugin_status"
     fi
 
     while IFS=$'\t' read -r classification plugin detail; do
@@ -82,6 +101,5 @@ update_helm() {
         plugin_status=1
     fi
 
-    echo_note "Helm plugin updates remain manual because update hooks execute plugin scripts"
     return "$plugin_status"
 }

@@ -6,8 +6,8 @@ DISABLE=false
 PLUGIN_PRIORITY=80
 PLUGIN_TIMEOUT_SECONDS=1800
 PLUGIN_SCHEDULE_ACTION=run
-# Report-only: uv, pnpm, and pip cache contents have no per-object public
-# provenance proof, so their removal stays a manual decision.
+# Report-only sizes. The uvcache and pnpmstore plugins prune those caches with
+# the tools' own commands; this one shows what is left afterwards.
 
 report_devcache_directory() {
     local cache_label=$1

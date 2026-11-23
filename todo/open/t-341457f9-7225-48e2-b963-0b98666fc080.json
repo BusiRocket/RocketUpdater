@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-341457f9-7225-48e2-b963-0b98666fc080",
+  "title": "Let the uv cache prune run despite long-lived uv run processes",
+  "state": "pending",
+  "category": "plugins",
+  "type": "bug",
+  "priority": "normal",
+  "kind": "task",
+  "created": "2026-11-23",
+  "notes": [
+    "2026-11-23: uvcache timed out after 30 s on ~/.cache/uv/.lock, held by nine long-lived 'uv run' processes (atrium MCP servers, atrium serve-context, LiveSalesCoach speech server). The plugin now skips on a held lock, so the cache is never pruned while those servers run.",
+    "Smallest next step: check whether uv cache prune can run against a shared lock in a newer uv, or schedule the prune at a moment those servers are restarted; never use --force."
+  ],
+  "done_when": [
+    "A scheduled run prunes the uv cache at least once a week without --force."
+  ]
+}

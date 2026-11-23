@@ -1,12 +1,15 @@
 #!/bin/bash
 
 PLUGIN_NAME="Whisper Model Report"
-PLUGIN_VERSION="1.0.0"
+PLUGIN_VERSION="1.1.0"
 DISABLE=false
 PLUGIN_PRIORITY=80
 PLUGIN_TIMEOUT_SECONDS=60
 PLUGIN_SCHEDULE_ACTION=run
 
+# Reports what is installed; a model is the owner's choice, never removed here.
+# OpenAI checkpoints and mlx-whisper's Hugging Face repositories are separate,
+# so a machine with only one of them still gets a report.
 update_whispermodels() {
     local found=0
     local model_name
@@ -21,13 +24,17 @@ update_whispermodels() {
         fi
     done
 
-    if [ "$found" -eq 0 ]; then
-        echo_skip "No tracked Whisper model is installed"
-        return 20
+    local hub_models
+    hub_models=$(find "$HOME/.cache/huggingface/hub" -maxdepth 1 -type d \
+        -iname '*whisper*' -exec du -sh {} \; 2>/dev/null)
+    if [ -n "$hub_models" ]; then
+        found=1
+        printf '%s\n' "$hub_models"
     fi
 
-    find "$HOME/.cache/huggingface/hub" -maxdepth 1 -type d \
-        -iname '*whisper*' -print -exec du -sh {} \; 2>/dev/null || true
-    echo_note "The 6.3 GiB OpenAI checkpoint set is one manual decision; mlx-whisper uses the separate Hugging Face cache"
+    if [ "$found" -eq 0 ]; then
+        echo_skip "No Whisper model is installed"
+        return 20
+    fi
     return 0
 }

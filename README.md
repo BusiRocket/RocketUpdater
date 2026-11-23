@@ -5,17 +5,33 @@
 
 ## Features
 
-- **Homebrew Integration**: Automatically update, upgrade, and clean Homebrew packages.
-- **NPM and Yarn Support**: Update global NPM packages and the Yarn version effortlessly.
-- **Composer Maintenance**: Clear cache, self-update Composer, and update global Composer packages.
-- **Rust Toolchain Updates**: Update Rust toolchains via rustup (and optionally cargo-installed binaries).
-- **Conda Environment Management**: Deactivate current Conda environments, update Conda itself, and ensure all environments have the latest Python version and packages.
-- **Docker Cleanup**: Remove exited containers and unused images to free up space.
-- **Mole Integration**: Run [Mole](https://mole.fit) (`mo clean`) as a plugin for a deep, whitelist-aware macOS cache cleanup. A manual run cleans; a scheduled run only previews (`mo clean --dry-run`). The manual clean requires `~/Library/Logs/RocketUpdater` and `~/Library/Caches/RocketUpdater` in `~/.config/mole/whitelist`; a whitelist file replaces Mole's defaults, so copy those in too.
-- **Dev Cache Cleanup**: Prune uv, pnpm store, and pip caches not covered by other plugins.
-- **macOS Updates**: Keep your macOS up-to-date with the latest software updates.
-- **PEAR and PECL Updates**: Clear cache and upgrade PEAR and PECL packages.
-- **Additional Utilities**: Update Browsers List with npx.
+Each tool is one plugin in `plugins/`. Scheduled runs (`--scheduled`) run every plugin whose `PLUGIN_SCHEDULE_ACTION` is `run`; `report` plugins only preview there.
+
+### Updates
+
+- **Homebrew**: update and upgrade formulae and casks. Casks that ship their own updater are upgraded by Brew as well when that updater lags (`codexbar`, `goplaces`, `flutter`, `lightkey`, `warp`, and `macfuse` in a run holding sudo).
+- **macOS**: install software updates (`osx`).
+- **Mac App Store**: `mas update` in a run holding sudo; otherwise the outdated list is printed and the App Store's own automatic updates apply.
+- **Microsoft AutoUpdate**: install pending Microsoft updates without closing open apps, and switch MAU to automatic downloads.
+- **Sparkle apps**: turn on each app's own automatic checks and installs, except where the app forbids them. `sparkledrift` lists apps whose feed is ahead of the installed build.
+- **Node**: global npm packages, Yarn, pnpm globals, and every installed nvm major brought to its newest release (the superseded release is uninstalled unless an alias pins it).
+- **Python**: Conda itself and every non-base environment, uv itself and uv tools.
+- **Other toolchains**: Rust (rustup), Composer, gopls, Google Cloud SDK components, Helm plugins (verified against their published checksums after each update), the Android SDK, PEAR and PECL, and Oh My Zsh.
+- **Editors and agents**: VS Code and Cursor extensions, Claude Code, and the Cursor agent CLI.
+
+### Cleanup
+
+Cleanup uses each tool's own conservative command and stands down while the tool is running.
+
+- **Homebrew**: `brew cleanup` behind a guard.
+- **uv, pnpm, Conda**: `uv cache prune`, `pnpm store prune`, and `conda clean --tarballs --index-cache`.
+- **Deno**: `deno clean`, only while Deno's origin storage is empty; otherwise a preview.
+- **Yarn metadata and Dart analysis cache**: files untouched for 30 days go to the Trash. Space returns when the Trash is emptied.
+- **Mole**: [Mole](https://mole.fit) (`mo clean`) in a manual run; a scheduled run only previews (`mo clean --dry-run`). The manual clean requires `~/Library/Logs/RocketUpdater`, `~/Library/Caches/RocketUpdater` and `~/.Trash` in `~/.config/mole/whitelist`; a whitelist file replaces Mole's defaults, so copy those in too.
+
+### Reports
+
+Docker, Bun, Cargo sources, PlatformIO, Composer backups, Sparkle caches, Whisper models and the remaining developer caches are reported by size only; removing them stays a manual decision.
 
 ## Installation
 

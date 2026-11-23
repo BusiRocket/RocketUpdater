@@ -168,7 +168,17 @@ update_homebrew() {
     # silently, which is the point of the supported mechanism.
     # Only these casks auto-update themselves in ways worth overriding; a
     # blanket --greedy retries deterministic postflight failures forever.
-    export HOMEBREW_UPGRADE_GREEDY_CASKS="codexbar goplaces"
+    # Warp, Lightkey and Flutter sat behind their casks for releases because
+    # Brew left them to updaters that never ran. macFUSE installs a pkg, which
+    # needs sudo, so it joins only a run that holds it. Never miniforge: its
+    # uninstall step removes the base prefix with every environment in it.
+    # Never gcloud-cli: its components update through the gcloud plugin and a
+    # cask reinstall would drop them.
+    local greedy_casks="codexbar goplaces flutter lightkey warp"
+    if [ "${SUDO_AVAILABLE:-false}" = true ]; then
+        greedy_casks="$greedy_casks macfuse"
+    fi
+    export HOMEBREW_UPGRADE_GREEDY_CASKS="$greedy_casks"
 
     # Some cask upgrades call sudo (dotnet-sdk uninstalls its old packages
     # that way). Plugins have no stdin, so without a grant that prompt never

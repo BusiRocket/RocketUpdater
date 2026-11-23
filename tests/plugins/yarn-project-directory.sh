@@ -47,7 +47,7 @@ if [ "$STATUS" -ne 0 ]; then
     exit 1
 fi
 if ! printf '%s\n' "$OUTPUT" | grep -q 'Detected version 4.x'; then
-    echo "RED yarn plugin: the version was not read from \$HOME"
+    echo "RED yarn plugin: the version was not read from the home directory"
     exit 1
 fi
 

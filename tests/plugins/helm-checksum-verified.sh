@@ -91,6 +91,15 @@ if [ "$FIRST_STATUS" -ne 0 ]; then
     exit 1
 fi
 
+# Plugins update before they are checked, so the check covers what just landed.
+if ! grep -qx 'helm plugin update diff' "$STATE_DIR/commands.log" ||
+    [ "$(grep -n 'helm plugin update diff' "$STATE_DIR/commands.log" | head -1 | cut -d: -f1)" -gt \
+        "$(grep -n 'helm env HELM_PLUGINS' "$STATE_DIR/commands.log" | head -1 | cut -d: -f1)" ]; then
+    cat "$STATE_DIR/commands.log"
+    echo "RED helm checksum: the plugin was not updated before verification"
+    exit 1
+fi
+
 if ! grep -q 'matches the published release' "$STATE_DIR/first"; then
     cat "$STATE_DIR/first"
     echo "RED helm checksum: the verified verdict was not reported"

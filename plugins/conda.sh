@@ -35,6 +35,7 @@ list_pypi_packages() {
 update_conda_environment() {
     local env_name=$1
     local is_base=$2
+    local environment_failed=0
 
     echo_info "Processing environment: $env_name"
 
@@ -43,6 +44,7 @@ update_conda_environment() {
         echo "  → Updating packages..."
         if ! conda update -n "$env_name" --all -y 2>&1; then
             echo_warning "Some packages in $env_name could not be updated"
+            environment_failed=1
         fi
     fi
 
@@ -67,12 +69,22 @@ update_conda_environment() {
             echo "  → Updating pip-installed packages..."
             local package
             for package in $pypi_packages; do
-                conda run -n "$env_name" pip install --upgrade "$package" 2>&1 ||
+                if ! conda run -n "$env_name" pip install --upgrade "$package" 2>&1; then
                     echo_warning "pip could not upgrade $package in $env_name"
+                    environment_failed=1
+                fi
             done
         fi
     fi
 
+    if [ "$is_base" = "true" ]; then
+        echo_note "Base: only Conda itself is updated; its other packages stay as the solver left them"
+        return 0
+    fi
+    if [ "$environment_failed" -ne 0 ]; then
+        echo_error "Environment $env_name was not fully updated"
+        return 1
+    fi
     echo_success "Environment $env_name updated"
 }
 
@@ -102,8 +114,8 @@ update_conda() {
         if [ -n "$env_name" ] && [ "$env_name" != "#" ]; then
             if [ "$env_name" = "base" ]; then
                 update_conda_environment "$env_name" true
-            else
-                update_conda_environment "$env_name" false
+            elif ! update_conda_environment "$env_name" false; then
+                has_failures=1
             fi
         fi
     done

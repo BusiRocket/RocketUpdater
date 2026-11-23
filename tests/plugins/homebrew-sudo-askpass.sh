@@ -22,6 +22,7 @@ case "$*" in
 'update') exit 0 ;;
 'outdated --formula --quiet') exit 0 ;;
 'outdated --cask --quiet')
+    printf '%s\n' "${HOMEBREW_UPGRADE_GREEDY_CASKS:-unset}" >"$PLUGIN_TEST_STATE/greedy"
     printf 'sudocask\n'
     exit 0
     ;;
@@ -79,6 +80,12 @@ if [ "$NO_GRANT_STATUS" -ne 1 ]; then
     exit 1
 fi
 
+# macFUSE's pkg needs root, so it is greedy only in a run that holds it.
+if grep -qw macfuse "$STATE_DIR/greedy" || ! grep -qw lightkey "$STATE_DIR/greedy"; then
+    echo "RED homebrew plugin: greedy casks without a grant were $(cat "$STATE_DIR/greedy")"
+    exit 1
+fi
+
 /bin/rm -f -- "$STATE_DIR/askpass"
 
 set +e
@@ -88,6 +95,11 @@ set -e
 
 if [ "$(cat "$STATE_DIR/askpass")" != unset ]; then
     echo "RED homebrew plugin: with cached credentials SUDO_ASKPASS was set"
+    exit 1
+fi
+
+if ! grep -qw macfuse "$STATE_DIR/greedy" || grep -qwE 'miniforge|gcloud-cli' "$STATE_DIR/greedy"; then
+    echo "RED homebrew plugin: greedy casks under a grant were $(cat "$STATE_DIR/greedy")"
     exit 1
 fi
 

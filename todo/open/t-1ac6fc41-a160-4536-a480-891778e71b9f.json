@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-1ac6fc41-a160-4536-a480-891778e71b9f",
+  "title": "Make Microsoft AutoUpdate answer msupdate in unattended runs",
+  "state": "pending",
+  "category": "plugins",
+  "type": "bug",
+  "priority": "low",
+  "kind": "task",
+  "created": "2026-11-23",
+  "notes": [
+    "2026-11-23: msupdate --list exits 0 with 'XPC Connection to updater invalidated' on every run, so the plugin skips before --install. HowToCheck is now AutomaticDownload, so MAU still updates on its own when it runs.",
+    "Smallest next step: check whether launching the MAU agent (open -g -j the Microsoft AutoUpdate app or its LaunchAgent) before msupdate makes the XPC call answer, without opening a window."
+  ],
+  "done_when": [
+    "A scheduled run reaches msupdate --install."
+  ]
+}

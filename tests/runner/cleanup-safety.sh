@@ -21,10 +21,57 @@ fi
 if rg -n --glob '*.sh' \
     'rm -rf|rm -r |find .* -delete|find .* -exec .*rm|brew cleanup|npm cache (clean|verify)|clear-npx-cache|yarn cache clean|uv cache prune|pnpm store prune|pip3 cache purge|conda clean|composer clearcache|mo clean( +[^ -]|[^ -]|$)|docker (system|container|image|volume|network|builder) prune|sudo purge|softwareupdate -ia' \
     "$ROOT_DIR" -g '!tests/**' -g '!cleanup/guard_homebrew_cleanup.sh' -g '!cleanup/guard_npm_public_cache.sh' \
-    -g '!cleanup/guard_sparkle_obsolete_installations.sh' -g '!plugins/mole.sh' | grep -q .; then
+    -g '!cleanup/guard_sparkle_obsolete_installations.sh' -g '!plugins/mole.sh' \
+    -g '!plugins/uvcache.sh' -g '!plugins/pnpmstore.sh' -g '!plugins/condacache.sh' | grep -q .; then
     echo "RED cleanup safety: destructive command remains outside the exact cleanup allowlist"
     exit 1
 fi
+
+# Cleanup families the first pattern never knew. Each one is allowed only in
+# the plugin that owns it, under the contract checked below.
+if rg -n --glob '*.sh' \
+    'deno clean|/usr/bin/trash|-exec trash|clear-cache|bun pm cache rm|go clean|gem cleanup|brew autoremove *($|2>|;|&&|[|])|hf cache (rm|prune)' \
+    "$ROOT_DIR" -g '!tests/**' -g '!plugins/deno.sh' -g '!plugins/yarnmetadata.sh' \
+    -g '!plugins/dartanalysis.sh' -g '!plugins/pear.sh' | grep -q .; then
+    echo "RED cleanup safety: a cleanup command appeared outside the plugin that owns it"
+    exit 1
+fi
+
+# The owner asked for scheduled runs to clean everything that rebuilds itself
+# (2026-11-23), so these run unattended. Each may only use its tool's own
+# conservative command; the flags that widen them stay forbidden.
+if ! rg -q 'prune_output=\$\(UV_LOCK_TIMEOUT=[0-9]+ uv cache prune 2>&1\)' "$ROOT_DIR/plugins/uvcache.sh" ||
+    rg -q -- 'uv cache (clean|prune.*--(force|ci))' "$ROOT_DIR/plugins/uvcache.sh"; then
+    echo "RED cleanup safety: uvcache must run a plain, lock-respecting uv cache prune"
+    exit 1
+fi
+if [ "$(rg -c 'pnpm store prune' "$ROOT_DIR/plugins/pnpmstore.sh")" != 3 ] ||
+    ! rg -q 'if ! pnpm store prune 2>&1; then' "$ROOT_DIR/plugins/pnpmstore.sh" ||
+    rg -q 'store/v(10|3)|store prune.*--force' "$ROOT_DIR/plugins/pnpmstore.sh"; then
+    echo "RED cleanup safety: pnpmstore must prune only the active store with pnpm's own command"
+    exit 1
+fi
+if ! rg -q 'conda clean --tarballs --index-cache --yes' "$ROOT_DIR/plugins/condacache.sh" ||
+    rg -q -- 'conda clean.*(--packages|--all|--force-pkgs-dirs| -a\b)' "$ROOT_DIR/plugins/condacache.sh"; then
+    echo "RED cleanup safety: condacache may remove only archives and the index cache"
+    exit 1
+fi
+if ! sed -n '/^update_deno()/,/^}/p' "$ROOT_DIR/plugins/deno.sh" | rg -q 'originStorage' ||
+    [ "$(sed -n '/originStorage/,/^}/p' "$ROOT_DIR/plugins/deno.sh" | rg -c '^\s+if ! deno clean 2>&1; then')" != 1 ]; then
+    echo "RED cleanup safety: deno clean must follow the origin storage check"
+    exit 1
+fi
+# The literal \$HOME is the source text being matched, not this shell's home.
+for aged_plugin in yarnmetadata:\$HOME/.yarn/berry/metadata dartanalysis:\$HOME/.dartServer/.analysis-driver; do
+    aged_file="$ROOT_DIR/plugins/${aged_plugin%%:*}.sh"
+    if ! rg -qF "${aged_plugin#*:}" "$aged_file" ||
+        [ "$(rg -c -- '-xdev -type f -mtime \+30 -exec "\$trash_command" \{\} \+' "$aged_file")" != 1 ] ||
+        ! rg -qF 'trash_command=${ROCKETUPDATER_TRASH_COMMAND:-/usr/bin/trash}' "$aged_file" ||
+        rg -q '\brm\b' "$aged_file"; then
+        echo "RED cleanup safety: ${aged_plugin%%:*} must move only files older than 30 days to the Trash"
+        exit 1
+    fi
+done
 
 # The owner asked for a manual run to clean with Mole (2026-10-11), so the one
 # real `mo clean` lives in the plugin's manual entry point. Scheduled runs call

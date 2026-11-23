@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- More updates run unattended. New plugins: `appstore` (`mas update` in a run
+  holding sudo, the outdated list otherwise), `sparkleauto` (turns on each
+  Sparkle app's own automatic checks and installs, in the container domain
+  for sandboxed apps, never where `SUAllowsAutomaticUpdates` is false),
+  `nodeversions` (each nvm major to its newest release with globals carried
+  over; the superseded release is uninstalled unless an alias names it),
+  `androidsdk` (`sdkmanager --update` with Android Studio's bundled Java,
+  deferred while Studio or an emulator runs, licenses never auto-accepted),
+  `uvruntime`, `pnpmglobals`, `vscodeextensions`, `cursorextensions`,
+  `claudecode` and `cursoragent`.
+
+- Scheduled runs clean what rebuilds itself: `uvcache` (`uv cache prune` with
+  a lock timeout), `pnpmstore` (`pnpm store prune` on the active store),
+  `condacache` (`conda clean --tarballs --index-cache`) and `dartanalysis`
+  (analysis-driver files older than 30 days to the Trash). The cleanup-safety
+  check allows each command only in its own plugin and rejects the flags that
+  widen it, and now also catches `deno clean`, `trash`, `clear-cache`,
+  `go clean`, `gem cleanup`, `brew autoremove` and `hf cache rm` anywhere else.
+
+- `tests/plugins/plugin-test-support.bash` runs one plugin function the way
+  the runner does, for the new plugin tests.
+
 - Compact terminal interface for manual runs, in the style of Mole: a one-line
   preflight summary, a spinner with elapsed time and the latest step per
   plugin, one status line per plugin with its changes, warnings, errors and
@@ -32,6 +54,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `~/Library/Logs/RocketUpdater/` (`tests/runner/run-log-pruning.sh`).
 
 ### Changed
+
+- Microsoft AutoUpdate 2.0.0 installs pending updates (`msupdate --install`,
+  never `--terminate`) and sets MAU to download on its own.
+- Helm 2.0.0 runs `helm plugin update` for each plugin before the checksum
+  verification, which now covers what was just installed.
+- Homebrew upgrades `flutter`, `lightkey` and `warp` greedily, and `macfuse`
+  in a run holding sudo. `miniforge` and `gcloud-cli` stay excluded.
+- Deno 2.0.0 runs `deno clean` when origin storage is empty and no deno process
+  runs; with origin data present it still only previews.
+- Yarn metadata 2.0.0 moves files older than 30 days to the Trash instead of
+  only reporting them.
+- Conda reports a failed environment update as a failure instead of a warning
+  followed by "updated", and no longer calls base updated when only Conda moved.
+- Whisper models are reported when only Hugging Face copies exist; the
+  hard-coded checkpoint note is gone.
+- PEAR skips `clear-cache` when its cache directory does not exist.
 
 - Mole 3.0.0: a manual run now cleans with `mo clean` instead of only
   previewing it, and reports the freed total. Scheduled runs stay dry-run

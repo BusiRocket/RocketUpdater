@@ -30,6 +30,9 @@ case "$*" in
 'update -n base'*)
     [ -n "${PLUGIN_TEST_SELF_UPDATE_FAILS:-}" ] && exit 1
     ;;
+'update -n work'*)
+    [ -n "${PLUGIN_TEST_ENV_UPDATE_FAILS:-}" ] && exit 1
+    ;;
 esac
 exit 0
 EOF
@@ -44,6 +47,7 @@ run_plugin() {
         source "'"$ROOT_DIR"'/lib/echo_warning.sh"
         source "'"$ROOT_DIR"'/lib/echo_error.sh"
         source "'"$ROOT_DIR"'/lib/echo_skip.sh"
+        source "'"$ROOT_DIR"'/lib/echo_note.sh"
         source "'"$ROOT_DIR"'/plugins/conda.sh"
         get_latest_stable_python() { echo 3.14; }
         update_conda
@@ -87,6 +91,29 @@ set -e
 if [ "$STATUS" -ne 1 ]; then
     cat "$STATE_DIR/output"
     echo "RED conda plugin: a failed conda self-update returned $STATUS instead of failing"
+    exit 1
+fi
+
+# Base gets only conda itself, so it must not be reported as fully updated.
+if grep -q 'Environment base updated' "$STATE_DIR/output"; then
+    echo "RED conda plugin: base was reported as updated although only conda moved"
+    exit 1
+fi
+
+# A failed environment used to print a warning and then "updated" with status 0.
+: >"$STATE_DIR/conda.log"
+set +e
+PLUGIN_TEST_ENV_UPDATE_FAILS=1 run_plugin
+STATUS=$?
+set -e
+if [ "$STATUS" -ne 1 ] || grep -q 'Environment work updated' "$STATE_DIR/output"; then
+    cat "$STATE_DIR/output"
+    echo "RED conda plugin: a failed environment update was reported as success ($STATUS)"
+    exit 1
+fi
+if grep -q 'command not found' "$STATE_DIR/output"; then
+    cat "$STATE_DIR/output"
+    echo "RED conda plugin: a helper the plugin calls was not loaded"
     exit 1
 fi
 

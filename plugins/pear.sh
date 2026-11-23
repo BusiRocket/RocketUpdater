@@ -224,7 +224,15 @@ update_pear() {
     resolve_pear_install_dir
 
     # Step 1: Clear caches
+    local pear_cache_dir=""
     if [ "$has_pear" = true ]; then
+        pear_cache_dir=$(run_pear_command config-get cache_dir 2>/dev/null | tail -1)
+    fi
+    # PEAR's cache_dir defaults to a per-boot temp path that is usually gone;
+    # clearing a missing directory printed an error line every run.
+    if [ "$has_pear" = true ] && [ ! -d "$pear_cache_dir" ]; then
+        echo_note "PEAR cache is absent; nothing to clear"
+    elif [ "$has_pear" = true ]; then
         echo_info "PEAR: Clearing cache..."
         local clear_output
         clear_output=$(run_pear_command "clear-cache")
