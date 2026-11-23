@@ -108,8 +108,8 @@ for cancellation_text in 'Dry run cancelled' 'a scan or size check timed out (ex
     fi
 done
 
-# Case 5: without whitelist entries for RocketUpdater's logs and lock, the
-# manual run refuses to clean.
+# Case 5: without whitelist entries for RocketUpdater's logs and lock and the
+# Trash, the manual run refuses to clean.
 : >"$STATE_DIR/mo.log"
 set +e
 run_mole "$FIXTURE_DIR/bin" update_mole
@@ -126,6 +126,22 @@ mkdir -p "$FIXTURE_DIR/home/.config/mole"
 # shellcheck disable=SC2088,SC2016
 printf '%s\n' '~/Library/Logs/RocketUpdater' '$HOME/Library/Caches/RocketUpdater' \
     >"$FIXTURE_DIR/home/.config/mole/whitelist"
+
+# Case 5b: logs and lock protected but the Trash not, so Mole would empty it
+# with rm; the manual run still refuses.
+: >"$STATE_DIR/mo.log"
+set +e
+run_mole "$FIXTURE_DIR/bin" update_mole
+UPDATE_STATUS=$?
+set -e
+if [ "$UPDATE_STATUS" -ne 20 ] || grep -q '^clean$' "$STATE_DIR/mo.log" ||
+    ! grep -qF '/.Trash' "$STATE_DIR/output"; then
+    echo "RED mole plugin: a real clean ran while Mole could empty the Trash"
+    exit 1
+fi
+
+# shellcheck disable=SC2088
+printf '%s\n' '~/.Trash' >>"$FIXTURE_DIR/home/.config/mole/whitelist"
 
 # Case 6: a manual run (update_mole) runs the real clean, with stdin closed so
 # Mole cannot prompt, and reports the freed total as a change.

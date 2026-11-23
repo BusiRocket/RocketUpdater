@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-bb733b5b-e546-4117-84d4-b94b785eb4ce",
+  "title": "Decide whether to empty the 17 GiB Trash",
+  "state": "pending",
+  "category": "waiting-on-the-owner-not-on-work",
+  "type": "untriaged",
+  "priority": "untriaged",
+  "kind": "decision",
+  "created": "2026-11-23",
+  "notes": [
+    "~/.Trash held 5675 top-level items, 18071568 KiB (du -sk), on 2026-11-23, including agent backups moved there by the trash rule.",
+    "Mole 1.73+ empties it with rm on a manual run; ~/.Trash is now in ~/.config/mole/whitelist and update_mole refuses without it, so emptying is the owner's call (Finder, or trash-cli per volume)."
+  ],
+  "done_when": [
+    "The owner empties the Trash or keeps it, and the decision is recorded"
+  ]
+}

@@ -17,12 +17,15 @@ check_mole() {
 
 # Mole's user sweep removes every child of ~/Library/Logs and ~/Library/Caches,
 # which took RocketUpdater's own event log and lock directory mid-run on
-# 2026-10-11. The real clean runs only while Mole's whitelist protects both.
-mole_protects_rocketupdater() {
+# 2026-10-11. Since 1.73.0 it also empties ~/.Trash with rm, which would make
+# every `trash`-recoverable deletion permanent (17 GiB, 5675 items on
+# 2026-11-23), and its dry run sizes each Trash item until the plugin times out.
+# The real clean runs only while Mole's whitelist protects all three.
+mole_whitelist_is_safe() {
     local whitelist="$HOME/.config/mole/whitelist"
     local protected_path
 
-    for protected_path in Library/Logs/RocketUpdater Library/Caches/RocketUpdater; do
+    for protected_path in Library/Logs/RocketUpdater Library/Caches/RocketUpdater .Trash; do
         # Mole expands a literal ~ and $HOME itself, so match those spellings.
         # shellcheck disable=SC2088
         if ! /usr/bin/grep -qxF -e "~/$protected_path" -e "\$HOME/$protected_path" \
@@ -51,6 +54,21 @@ print_mole_identity() {
     export MOLE_TIMEOUT_DISK_VERIFY_SEC="${MOLE_TIMEOUT_DISK_VERIFY_SEC:-120}"
 }
 
+# Streams a Mole command into the run log as it works, so a plugin timeout
+# still shows the step Mole was on; a $(...) capture lost all of it. The output
+# is also kept in MOLE_OUTPUT for the callers' checks. Callers spell the full
+# command so the cleanup-safety test can still see which one is real.
+run_mole_streamed() {
+    local output_file
+    local mole_status
+    output_file=$(/usr/bin/mktemp -t rocketupdater-mole) || return 1
+    "$@" 2>&1 | /usr/bin/tee "$output_file"
+    mole_status=${PIPESTATUS[0]}
+    MOLE_OUTPUT=$(<"$output_file")
+    /bin/rm -f -- "$output_file"
+    return "$mole_status"
+}
+
 report_mole() {
     if ! check_mole; then
         echo_skip "Mole (mo) is not installed. Skipping... (brew install mole)"
@@ -62,9 +80,9 @@ report_mole() {
     echo_info "Mole: Previewing clean candidates (dry run only)..."
     local dry_run_output
     local dry_run_status
-    dry_run_output=$(mo clean --dry-run 2>&1)
+    run_mole_streamed mo clean --dry-run
     dry_run_status=$?
-    printf '%s\n' "$dry_run_output"
+    dry_run_output=$MOLE_OUTPUT
 
     if [ "$dry_run_status" -ne 0 ]; then
         # An abandoned measurement is incomplete evidence, not a RocketUpdater
@@ -90,8 +108,8 @@ update_mole() {
         return 20
     fi
 
-    if ! mole_protects_rocketupdater; then
-        echo_warning "Mole would delete RocketUpdater's logs and lock; add ~/Library/Logs/RocketUpdater and ~/Library/Caches/RocketUpdater to ~/.config/mole/whitelist"
+    if ! mole_whitelist_is_safe; then
+        echo_warning "Mole would delete RocketUpdater's logs and lock or empty the Trash; add ~/Library/Logs/RocketUpdater, ~/Library/Caches/RocketUpdater and ~/.Trash to ~/.config/mole/whitelist"
         return 20
     fi
 
@@ -103,9 +121,9 @@ update_mole() {
     echo_info "Mole: Cleaning caches, logs and app leftovers..."
     local clean_output
     local clean_status
-    clean_output=$(mo clean </dev/null 2>&1)
+    run_mole_streamed mo clean </dev/null
     clean_status=$?
-    printf '%s\n' "$clean_output"
+    clean_output=$MOLE_OUTPUT
 
     if [ "$clean_status" -ne 0 ]; then
         echo_error "Mole clean reported errors (status $clean_status)"

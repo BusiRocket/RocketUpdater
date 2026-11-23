@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-f869c34e-fd4d-4bd5-b8fc-1f74cbbe77b4",
+  "title": "Defer heavy report plugins on a degraded scheduled run",
+  "state": "pending",
+  "category": "runner",
+  "type": "untriaged",
+  "priority": "normal",
+  "kind": "task",
+  "created": "2026-11-23",
+  "notes": [
+    "On 2026-11-23 02:15 the preflight was degraded (load_above_cpu_count): 25 run plugins were deferred, yet report_mole still ran 1800 s and timed out, the heaviest step of the night.",
+    "Smallest next step: a plugin metadata flag (e.g. PLUGIN_HEAVY=true on mole) that ROCKETUPDATER_DEFER_RUN_ACTIONS also skips in RocketUpdater.sh near the report branch."
+  ],
+  "done_when": [
+    "A degraded scheduled run skips report_mole and a runner test covers it"
+  ]
+}
