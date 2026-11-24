@@ -1,0 +1,24 @@
+{
+  "tadu": 2,
+  "id": "t-e95c55c6-6ab3-4e52-b7e1-7654cd6c3efb",
+  "title": "Skip casks whose app belongs to another user in a run without sudo",
+  "state": "done",
+  "category": "homebrew",
+  "type": "bug",
+  "priority": "normal",
+  "kind": "task",
+  "created": "2026-11-24",
+  "created_by": "agent:claude",
+  "notes": [
+    "On a Mac with Homebrew shared between accounts (office Mac, user oficina, apps in /Applications owned by cristiandeluxe) a --scheduled run on 2026-11-24 failed every cask upgrade at 'Using sudo to gain ownership' and left 34 app backup copies (about 15 GB) in /opt/homebrew/Caskroom; the next manual run then failed with 'It seems there is already an App at'.",
+    "Local uncommitted patch in plugins/homebrew.sh on the office Mac (~/src/RocketUpdater): cask_app_needs_sudo + a skip with echo_warning when SUDO_AVAILABLE is not true. format, lint and test-regressions pass. Needs review and a commit upstream."
+  ],
+  "done_when": [
+    "The change is committed upstream or replaced by an equivalent, and a sudo-less run leaves no .app directories in the Caskroom"
+  ],
+  "closed": "2026-11-24",
+  "result": "Skip casks whose app belongs to another user in a run without sudo",
+  "evidence": [
+    "plugins/homebrew.sh cask_app_needs_sudo skips the cask with a warning when SUDO_AVAILABLE is not true; tests/plugins/homebrew-pinned-foreign-cask.sh GREEN and RED without the change; scripts/test-regressions.sh passes"
+  ]
+}

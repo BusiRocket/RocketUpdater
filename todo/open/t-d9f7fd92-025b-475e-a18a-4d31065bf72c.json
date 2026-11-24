@@ -1,0 +1,18 @@
+{
+  "tadu": 2,
+  "id": "t-d9f7fd92-025b-475e-a18a-4d31065bf72c",
+  "title": "Report when uv tool upgrade replaces a hand-written wrapper in ~/.local/bin",
+  "state": "pending",
+  "category": "uv",
+  "type": "bug",
+  "priority": "low",
+  "kind": "task",
+  "created": "2026-11-24",
+  "created_by": "agent:claude",
+  "notes": [
+    "On the office Mac the uvtools plugin ran 'uv tool upgrade atrium' and ~/.local/bin/atrium, a wrapper script that exported SYNTOPICA_DATA, became a symlink to the uv tool entry point (2026-11-24 01:32). atrium then answered from no instance. Fixed locally by exporting SYNTOPICA_DATA in ~/.zshenv."
+  ],
+  "done_when": [
+    "A decision is recorded: either uvtools detects non-symlink entry points before upgrading, or wrappers are documented as unsupported"
+  ]
+}

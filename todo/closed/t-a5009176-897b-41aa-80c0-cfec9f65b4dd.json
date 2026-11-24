@@ -1,0 +1,23 @@
+{
+  "tadu": 2,
+  "id": "t-a5009176-897b-41aa-80c0-cfec9f65b4dd",
+  "title": "Do not count a pinned formula as a failed Homebrew upgrade",
+  "state": "done",
+  "category": "homebrew",
+  "type": "bug",
+  "priority": "low",
+  "kind": "task",
+  "created": "2026-11-24",
+  "created_by": "agent:claude",
+  "notes": [
+    "With mysql pinned, 'brew upgrade --formula mysql' exits non-zero ('Not upgrading 1 pinned package') and the homebrew plugin reported 'Homebrew items failed: mysql' on every run (office Mac, 2026-11-24). list_brew_outdated should leave pinned formulae out, or the plugin should report them as a note."
+  ],
+  "done_when": [
+    "A run with a pinned outdated formula ends with the homebrew plugin successful and the pin reported as a note"
+  ],
+  "closed": "2026-11-24",
+  "result": "Do not count a pinned formula as a failed Homebrew upgrade",
+  "evidence": [
+    "update_homebrew reads brew list --pinned and reports a pinned formula as a note; tests/plugins/homebrew-pinned-foreign-cask.sh GREEN, RED without the change ('Homebrew items failed: heldformula')"
+  ]
+}

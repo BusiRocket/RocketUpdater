@@ -154,6 +154,28 @@ cask_disabled() {
     return 1
 }
 
+# cask_app_needs_sudo NAME succeeds when an app the cask installed into
+# /Applications belongs to another user. On a Mac whose Homebrew is shared
+# between accounts brew then asks sudo for ownership before replacing the app.
+# In a run without sudo that fails only after brew has copied the app into the
+# Caskroom as its backup, and that stale copy makes every later upgrade of the
+# cask refuse with "It seems there is already an App at ...": on 2026-11-24 one
+# unattended run left 34 such copies (about 15 GB) and blocked the next manual
+# run entirely.
+cask_app_needs_sudo() {
+    local app me
+    local apps_dir="${ROCKETUPDATER_APPLICATIONS_DIR:-/Applications}"
+
+    me=$(id -un)
+    # `brew list --cask` names each app by its Caskroom entry, a link to the
+    # copy in /Applications, so the bundle name is what carries over.
+    while IFS= read -r app; do
+        [ -d "$apps_dir/$app" ] || continue
+        [ "$(stat -f %Su "$apps_dir/$app")" = "$me" ] || return 0
+    done < <(brew list --cask "$1" 2>/dev/null | grep -oE '[^/]+\.app$' | sort -u)
+    return 1
+}
+
 update_homebrew() {
     if ! check_homebrew; then
         echo_skip "Homebrew is not installed"
@@ -212,9 +234,20 @@ update_homebrew() {
     # The list is fed on fd 3, not stdin: `brew upgrade` reads stdin and drained
     # the rest of the list, so a run upgraded one package and then behaved as if
     # the remaining ones were already done.
+    #
+    # A pinned formula is the user's decision to hold a version. brew lists it
+    # as outdated and `brew upgrade` on it exits non-zero ("Not upgrading 1
+    # pinned package"), so with mysql pinned the plugin failed on every run.
+    local pinned_formulae
+    pinned_formulae=$(brew list --pinned 2>/dev/null)
+
     local item
     while IFS= read -r item <&3; do
         [ -n "$item" ] || continue
+        if printf '%s\n' "$pinned_formulae" | grep -qxF -- "$item"; then
+            echo_note "formula $item is pinned and stays at its version; brew unpin $item to upgrade it"
+            continue
+        fi
         echo_info "Homebrew: Upgrading formula $item..."
         if [ "$item" = node ]; then
             if ! run_node_formula_upgrade; then
@@ -243,6 +276,10 @@ update_homebrew() {
         [ -n "$item" ] || continue
         if cask_disabled "$item"; then
             echo_warning "cask $item is disabled upstream and can no longer be upgraded; replace or uninstall it"
+            continue
+        fi
+        if [ "${SUDO_AVAILABLE:-false}" != true ] && cask_app_needs_sudo "$item"; then
+            echo_warning "cask $item left for a run holding sudo: its app in /Applications belongs to another user"
             continue
         fi
         echo_info "Homebrew: Upgrading cask $item..."

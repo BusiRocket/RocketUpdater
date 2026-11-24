@@ -96,6 +96,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Homebrew: a pinned formula is reported as a note and no longer fails the
+  plugin. `brew upgrade` exits non-zero on it, so with mysql pinned on the
+  office Mac every run ended "Homebrew items failed: mysql"
+  (`tests/plugins/homebrew-pinned-foreign-cask.sh`).
+- Homebrew: in a run without sudo, a cask whose app in /Applications belongs
+  to another user is left with a warning. On a Mac whose Homebrew is shared
+  between accounts brew needs sudo to take the app over, and failing there
+  left its backup copy in the Caskroom, which made every later upgrade refuse
+  with "It seems there is already an App at": on 2026-11-24 one scheduled run
+  left 34 copies, about 15 GB.
 - Homebrew: a formula that is poured but left unlinked now gets one error
   naming it and `brew link --overwrite --dry-run <name>`, instead of only the
   link conflict listing. On 2026-10-11 pillow and pydantic were blocked by
