@@ -96,6 +96,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- nvm: a major already on its newest release no longer fails the plugin.
+  `nvm install --reinstall-packages-from` refuses a release that is already
+  installed, so every run ended "Failed: nodeversions"; the newest release is
+  now resolved with `nvm version-remote` first and a current major is left
+  alone (`tests/plugins/nodeversions.sh`).
+- uv: a tool installed from a local checkout (editable, directory or path
+  source) is skipped. `worker` had become a Go project, so
+  `uv tool upgrade worker` failed with no `pyproject.toml`, and a successful
+  reinstall would have overwritten the Go binary at `~/.local/bin/worker`
+  (`tests/plugins/uvtools.sh`).
 - Homebrew: a pinned formula is reported as a note and no longer fails the
   plugin. `brew upgrade` exits non-zero on it, so with mysql pinned on the
   office Mac every run ended "Homebrew items failed: mysql"

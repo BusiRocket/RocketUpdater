@@ -18,7 +18,10 @@ cat >"$FIXTURE_DIR/bin/uv" <<'EOF'
 printf '%s\n' "$*" >>"$PLUGIN_TEST_STATE/uv.log"
 case "$*" in
 'tool list')
-    printf 'alpha v1.0.0\n- alpha\nbravo v2.0.0\n- bravo\nmempalace v3.8.0\n- mempalace\ncharlie v3.0.0\n- charlie\n'
+    printf 'alpha v1.0.0\n- alpha\nbravo v2.0.0\n- bravo\nmempalace v3.8.0\n- mempalace\ncharlie v3.0.0\n- charlie\nlocal v0.1.0\n- local\n'
+    ;;
+'tool dir')
+    printf '%s\n' "$PLUGIN_TEST_STATE/tools"
     ;;
 'tool upgrade'*)
     # uv is free to read stdin; the plugin must not depend on it leaving the list alone.
@@ -29,6 +32,9 @@ esac
 exit 0
 EOF
 chmod +x "$FIXTURE_DIR/bin/uv"
+mkdir -p "$STATE_DIR/tools/local" "$STATE_DIR/tools/alpha"
+printf '[tool]\nrequirements = [{ name = "local", editable = "/nowhere/local" }]\n' >"$STATE_DIR/tools/local/uv-receipt.toml"
+printf '[tool]\nrequirements = [{ name = "alpha" }]\nentrypoints = [\n    { name = "alpha", install-path = "/x/alpha", from = "alpha" },\n]\n' >"$STATE_DIR/tools/alpha/uv-receipt.toml"
 
 set +e
 PATH="$FIXTURE_DIR/bin:/usr/bin:/bin" PLUGIN_TEST_STATE="$STATE_DIR" /bin/bash -c '
@@ -64,6 +70,11 @@ done
 
 if grep -q 'tool upgrade --no-progress mempalace' "$STATE_DIR/uv.log"; then
     echo "RED uvtools plugin: mempalace must stay excluded"
+    exit 1
+fi
+
+if grep -q 'tool upgrade --no-progress local' "$STATE_DIR/uv.log"; then
+    echo "RED uvtools plugin: a tool installed from a local path must not be upgraded"
     exit 1
 fi
 

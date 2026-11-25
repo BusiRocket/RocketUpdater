@@ -39,7 +39,22 @@ update_nodeversions() {
     for major in $majors; do
         local installed_before
         installed_before=$(nvm version "$major")
-        echo_info "nvm: Updating Node $major (installed $installed_before)..."
+        # nvm refuses --reinstall-packages-from when the target is already
+        # installed, so a current major must never reach `nvm install`.
+        local latest
+        latest=$(nvm version-remote "$major" 2>/dev/null)
+        case $latest in
+        v[0-9]*) ;;
+        *)
+            echo_warning "nvm could not resolve the latest Node $major"
+            has_failures=1
+            continue
+            ;;
+        esac
+        if [ "$latest" = "$installed_before" ]; then
+            continue
+        fi
+        echo_info "nvm: Updating Node $major ($installed_before -> $latest)..."
         if ! nvm install "$major" --reinstall-packages-from="$installed_before" --no-progress 2>&1; then
             echo_warning "nvm could not update Node $major"
             has_failures=1

@@ -32,6 +32,9 @@ update_uvtools() {
         return 20
     fi
 
+    local tool_dir
+    tool_dir=$(uv tool dir 2>/dev/null || true)
+
     local has_failures=0
     local tool_name
     # The list is fed on fd 3, not stdin: a tool that reads stdin would drain
@@ -39,6 +42,13 @@ update_uvtools() {
     # them done, which is exactly what `brew upgrade` did in the homebrew plugin.
     while IFS= read -r tool_name <&3; do
         [ -n "$tool_name" ] || continue
+        # A tool installed from a local checkout has no index to upgrade from,
+        # and reinstalling it would overwrite whatever its source now builds.
+        if [ -n "$tool_dir" ] &&
+            grep -qE '[{,] *(editable|directory|path) = "' "$tool_dir/$tool_name/uv-receipt.toml" 2>/dev/null; then
+            echo_note "uv: Skipping $tool_name: installed from a local path"
+            continue
+        fi
         echo_info "uv: Upgrading $tool_name..."
         local upgrade_output
         if ! upgrade_output=$(UV_LOCK_TIMEOUT=30 uv tool upgrade --no-progress "$tool_name" 2>&1); then

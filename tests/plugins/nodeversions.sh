@@ -20,6 +20,10 @@ nvm() {
     printf 'nvm %s\n' "$*" >>"$NVM_DIR/nvm.log"
     case $1 in
     version) cat "$NVM_DIR/current-$2" ;;
+    version-remote)
+        [ -n "${PLUGIN_TEST_REMOTE_FAILS:-}" ] && { echo N/A; return 3; }
+        if [ -f "$NVM_DIR/next-$2" ]; then cat "$NVM_DIR/next-$2"; else cat "$NVM_DIR/current-$2"; fi
+        ;;
     install)
         [ -n "${PLUGIN_TEST_INSTALL_FAILS:-}" ] && return 3
         [ -f "$NVM_DIR/next-$2" ] && cp "$NVM_DIR/next-$2" "$NVM_DIR/current-$2"
@@ -46,9 +50,10 @@ set -e
 if [ "$STATUS" -ne 0 ] ||
     ! grep -qx 'nvm install 22 --reinstall-packages-from=v22.1.0 --no-progress' "$NVM_DIR/nvm.log" ||
     ! grep -qx 'nvm uninstall v22.1.0' "$NVM_DIR/nvm.log" ||
+    grep -q 'nvm install 24' "$NVM_DIR/nvm.log" ||
     grep -q 'nvm uninstall v24' "$NVM_DIR/nvm.log"; then
     cat "$FIXTURE_DIR/output" "$NVM_DIR/nvm.log"
-    echo "RED nodeversions: majors were not updated with only the superseded release removed ($STATUS)"
+    echo "RED nodeversions: majors were not updated with only the superseded release removed, or a current major reached nvm install ($STATUS)"
     exit 1
 fi
 
@@ -69,6 +74,17 @@ set -e
 if [ "$STATUS" -ne 1 ] || grep -q 'nvm uninstall' "$NVM_DIR/nvm.log"; then
     cat "$FIXTURE_DIR/output"
     echo "RED nodeversions: a failed install returned $STATUS or still uninstalled a release"
+    exit 1
+fi
+
+reset_fixture
+set +e
+PLUGIN_TEST_REMOTE_FAILS=1 run_plugin_function "$ROOT_DIR" "$ROOT_DIR/plugins/nodeversions.sh" update_nodeversions "$FIXTURE_DIR/bin" "$FIXTURE_DIR/output"
+STATUS=$?
+set -e
+if [ "$STATUS" -ne 1 ] || grep -q 'nvm install' "$NVM_DIR/nvm.log"; then
+    cat "$FIXTURE_DIR/output"
+    echo "RED nodeversions: an unresolved remote version returned $STATUS or still installed"
     exit 1
 fi
 
